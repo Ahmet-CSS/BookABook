@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Book, User, Star, Clock, Check, X, Sparkles, LayoutDashboard } from 'lucide-react';
+import { Search, Book, User, Star, Clock, Check, X, Sparkles, LayoutDashboard, Lock, UserCircle, LogOut } from 'lucide-react';
 
 
 const theme = {
@@ -9,10 +9,11 @@ const theme = {
   border: '#22222b',
   text: '#f8fafc',
   textMuted: '#94a3b8',
-  primary: '#ff007f', // Neon Pink
-  secondary: '#6366f1', // Indigo
-  accent: '#fbbf24', // Amber/Gold
-  success: '#10b981', // Emerald
+  primary: '#ff007f',
+  secondary: '#6366f1',
+  accent: '#fbbf24',
+  success: '#10b981',
+  error: '#ef4444'
 };
 
 const styles = {
@@ -37,6 +38,8 @@ const styles = {
     borderBottom: `1px solid ${theme.border}`,
     flexWrap: 'wrap',
     gap: '20px',
+    width: '100%',
+    paddingTop: '20px',
   },
   logo: {
     display: 'flex',
@@ -65,6 +68,7 @@ const styles = {
   navButtons: {
     display: 'flex',
     gap: '15px',
+    alignItems: 'center',
   },
   navBtn: (active) => ({
     background: 'none',
@@ -75,6 +79,20 @@ const styles = {
     fontSize: '14px',
     transition: '0.3s',
   }),
+  logoutBtn: {
+    background: 'none',
+    border: `1px solid ${theme.border}`,
+    borderRadius: '8px',
+    color: theme.error,
+    cursor: 'pointer',
+    padding: '6px 12px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    transition: '0.3s',
+  },
   grid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
@@ -118,8 +136,69 @@ const styles = {
     fontWeight: 'bold',
     cursor: 'pointer',
     width: '100%',
+  },
+
+  //login feature
+  loginWrapper: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '100vh',
+    width: '100%',
+    backgroundColor: theme.bg,
+    padding: '20px',
+  },
+  loginBox: {
+    backgroundColor: theme.cardBg,
+    border: `1px solid ${theme.border}`,
+    borderRadius: '24px',
+    padding: '40px',
+    width: '100%',
+    maxWidth: '400px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    boxShadow: `0 20px 40px rgba(0,0,0,0.5)`,
+  },
+  inputGroup: {
+    display: 'flex',
+    alignItems: 'center',
+    backgroundColor: theme.innerBg,
+    border: `1px solid ${theme.border}`,
+    borderRadius: '12px',
+    padding: '0 15px',
+    transition: 'border-color 0.3s',
+  },
+  loginInput: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    border: 'none',
+    padding: '15px 10px',
+    color: theme.text,
+    outline: 'none',
+    fontSize: '16px',
+  },
+  loginButton: {
+    backgroundColor: theme.primary,
+    color: 'white',
+    border: 'none',
+    borderRadius: '12px',
+    padding: '15px',
+    fontWeight: 'bold',
+    fontSize: '16px',
+    cursor: 'pointer',
+    marginTop: '10px',
+    transition: 'opacity 0.3s',
+  },
+  errorText: {
+    color: theme.error,
+    fontSize: '14px',
+    textAlign: 'center',
+    minHeight: '20px', 
   }
 };
+
+
 
 // Mock Data
 const MOCK_BOOKS = [
@@ -138,9 +217,95 @@ export default function App() {
   const [view, setView] = useState('browse');
   const [search, setSearch] = useState('');
 
+  const [isLoggedIn, setIsLoggedIn] = useState(false); 
+  const [username, setUsername] = useState('');        
+  const [password, setPassword] = useState('');        
+  const [errorMessage, setErrorMessage] = useState('');
+
   const filteredBooks = MOCK_BOOKS.filter(b => 
     b.title.toLowerCase().includes(search.toLowerCase())
   );
+
+
+  const handleLogin = () => {
+
+    if (username.trim() === '' || password.trim() === '') {
+      setErrorMessage('empty input');
+      return;
+    }
+    
+
+    if (password === '123456') {
+      setIsLoggedIn(true);
+      setErrorMessage(''); 
+    } else {
+      setErrorMessage('pw:123456');
+    }
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUsername('');
+    setPassword('');
+    setView('browse'); 
+  };
+
+
+
+  if (!isLoggedIn) {
+    return (
+      <div style={styles.loginWrapper}>
+        <div style={styles.loginBox}>
+          
+          {/* Logo */}
+          <div style={{...styles.logo, justifyContent: 'center', marginBottom: '10px'}}>
+            <Sparkles size={32} />
+            <span>YORU SHARE</span>
+          </div>
+          
+          <div style={{textAlign: 'center', color: theme.textMuted, marginBottom: '20px'}}>
+            LoveLove yoru book share, share your love with others
+          </div>
+
+          {/* error */}
+          <div style={styles.errorText}>{errorMessage}</div>
+
+          {/* user input bar */}
+          <div style={styles.inputGroup}>
+            <UserCircle size={20} color={theme.textMuted} />
+            <input 
+              type="text" 
+              placeholder="plese enter username" 
+              style={styles.loginInput}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)} 
+            />
+          </div>
+
+          {/* pw input bar */}
+          <div style={styles.inputGroup}>
+            <Lock size={20} color={theme.textMuted} />
+            <input 
+              type="password" 
+              placeholder="plese enter password" 
+              style={styles.loginInput}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)} 
+            />
+          </div>
+
+          {/* login btn */}
+          <button 
+            style={styles.loginButton} 
+            onClick={handleLogin}
+          >
+            Login
+          </button>
+          
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div style={styles.container}>
@@ -165,6 +330,12 @@ export default function App() {
         <div style={styles.navButtons}>
           <button style={styles.navBtn(view === 'browse')} onClick={() => setView('browse')}>Discover</button>
           <button style={styles.navBtn(view === 'dashboard')} onClick={() => setView('dashboard')}>Dashboard</button>
+
+      {/* add logout btn */}
+          <div style={{width: '1px', height: '20px', backgroundColor: theme.border, margin: '0 10px'}}></div>
+          <button style={styles.logoutBtn} onClick={handleLogout} title="logout">
+            <LogOut size={16} /> logout
+          </button>
         </div>
       </nav>
 
