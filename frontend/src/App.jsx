@@ -20,8 +20,12 @@ const styles = {
     backgroundColor: theme.bg,
     color: theme.text,
     minHeight: '100vh',
+    width: '100%',
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    padding: '20px',
+    display: 'flex',
+    flexDirection: 'column',
+    margin: 0,
+    padding: 0,
   },
   navbar: {
     maxWidth: '1000px',
