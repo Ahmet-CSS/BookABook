@@ -348,7 +348,13 @@ export default function App() {
               {filteredBooks.map(book => (
                 <div key={book.id} style={styles.card}>
                   <div style={styles.badge}>{book.genre}</div>
-                  <h3 style={{fontSize: '20px', fontWeight: 'bold', marginBottom: '5px'}}>{book.title}</h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '5px' }}>
+                    <h3 style={{fontSize: '20px', fontWeight: 'bold', margin: 0}}>{book.title}</h3>
+                
+                    <div style={{color: theme.accent, fontSize: '14px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginTop: '2px'}}>
+                      <Star size={14} fill="currentColor" /> {book.rating}
+                    </div>
+                  </div>
                   <p style={{color: theme.textMuted, fontSize: '14px', marginBottom: '20px italic'}}>by {book.author}</p>
                   
                   {/* Owner Info Block */}
@@ -362,9 +368,7 @@ export default function App() {
                       <div style={{fontSize: '10px', color: theme.textMuted, fontWeight: 'bold'}}>OWNER</div>
                       <div style={{fontSize: '14px', fontWeight: 'bold'}}>{book.owner}</div>
                     </div>
-                    <div style={{color: theme.accent, fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px'}}>
-                      <Star size={12} fill="currentColor" /> {book.rating}
-                    </div>
+                    
                   </div>
 
                   <button style={styles.button}>Request Borrow</button>
