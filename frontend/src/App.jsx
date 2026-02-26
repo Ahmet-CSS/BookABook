@@ -125,6 +125,7 @@ const styles = {
     borderRadius: '50%',
     backgroundColor: theme.bg,
     border: `1px solid ${theme.border}`,
+    objectFit: 'cover',
   },
   button: {
     marginTop: 'auto',
@@ -360,7 +361,7 @@ export default function App() {
                   {/* Owner Info Block */}
                   <div style={{display: 'flex', alignItems: 'center', gap: '12px', background: theme.innerBg, padding: '12px', borderRadius: '16px', marginBottom: '20px'}}>
                     <img 
-                      src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${book.owner}`} 
+                      src={"/avatar.jpg"} 
                       style={styles.avatar} 
                       alt="avatar"
                     />
