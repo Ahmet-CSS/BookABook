@@ -223,6 +223,19 @@ export default function App() {
   const [password, setPassword] = useState('');        
   const [errorMessage, setErrorMessage] = useState('');
 
+  // For handling borrow requests (not fully implemented in UI yet)
+  const [borrowRequests, setBorrowRequests] = useState([]);
+
+  const handleBorrowRequest = (book) => {
+    const newRequest = {
+      id: Date.now(),
+      title: book.title,
+      owner: book.owner,
+      status: 'pending',
+    };
+    setBorrowRequests((prev) => [...prev, newRequest]);
+  }
+
   const filteredBooks = MOCK_BOOKS.filter(b => 
     b.title.toLowerCase().includes(search.toLowerCase())
   );
@@ -371,8 +384,8 @@ export default function App() {
                     </div>
                     
                   </div>
-
-                  <button style={styles.button}>Request Borrow</button>
+                {/* Borrow Request Button */}
+                  <button style={styles.button} onClick={() => handleBorrowRequest(book)}>Request Borrow</button>
                 </div>
               ))}
             </div>
