@@ -7,6 +7,7 @@
 *.njsproj
 *.sln
 *.swp
+*.sqlite3
 
 
 node_modules/
