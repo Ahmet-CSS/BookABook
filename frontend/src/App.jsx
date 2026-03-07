@@ -196,7 +196,14 @@ const styles = {
     fontSize: '14px',
     textAlign: 'center',
     minHeight: '20px', 
-  }
+  },
+  toggleText: { 
+    color: theme.textMuted,
+    fontSize: '14px', 
+    textAlign: 'center', 
+    cursor: 'pointer', 
+    marginTop: '10px', 
+    textDecoration: 'underline' }
 };
 
 
@@ -223,24 +230,65 @@ export default function App() {
   const [password, setPassword] = useState('');        
   const [errorMessage, setErrorMessage] = useState('');
 
+  const [isLoginMode, setIsLoginMode] = useState(true);
+
   const filteredBooks = MOCK_BOOKS.filter(b => 
     b.title.toLowerCase().includes(search.toLowerCase())
   );
 
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
 
-    if (username.trim() === '' || password.trim() === '') {
+    if (!username.trim() || !password.trim()) {
       setErrorMessage('empty input');
       return;
     }
     
+    try {
+      const response = await fetch('http://localhost:8000/api/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await response.json();
 
-    if (password === '123456') {
-      setIsLoggedIn(true);
-      setErrorMessage(''); 
-    } else {
-      setErrorMessage('pw:123456');
+      if (response.ok) {
+        setIsLoggedIn(true);
+        setUsername(data.username || username); 
+        setErrorMessage('');
+        console.log("successed", data);
+      } else {
+        setErrorMessage(data.error || 'Login failed, please check your credentials');
+      }
+    } catch (error) {
+      console.error("Backend Connection Error:", error);
+      setErrorMessage('Failed to connect to Django. Is the server running & CORS configured?');
+    }
+};
+
+  const handleRegister = async () => {
+    if (!username.trim() || !password.trim()) {
+      setErrorMessage('Username and password cannot be empty!'); return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/api/register/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        setErrorMessage(data.message || 'Registration successful! Please log in.');        setIsLoginMode(true); 
+        setIsLoginMode(true); 
+        setPassword(''); 
+      } else {
+        setErrorMessage(data.error || 'Registration failed, username may already exist');
+      }
+    } catch (error) {
+      console.error("Backend Connection Error:", error);
+      setErrorMessage('Failed to connect to Django. Is the server running & CORS configured?');
     }
   };
 
@@ -248,65 +296,56 @@ export default function App() {
     setIsLoggedIn(false);
     setUsername('');
     setPassword('');
+    localStorage.removeItem('token');
     setView('browse'); 
   };
-
-
 
   if (!isLoggedIn) {
     return (
       <div style={styles.loginWrapper}>
         <div style={styles.loginBox}>
-          
-          {/* Logo */}
           <div style={{...styles.logo, justifyContent: 'center', marginBottom: '10px'}}>
             <Sparkles size={32} />
             <span>YORU SHARE</span>
           </div>
           
           <div style={{textAlign: 'center', color: theme.textMuted, marginBottom: '20px'}}>
-            LoveLove yoru book share, share your love with others
+            {isLoginMode ? 'Welcome back, please log in' : 'Create a new account, join us'}
           </div>
 
-          {/* error */}
-          <div style={styles.errorText}>{errorMessage}</div>
+          <div style={{...styles.errorText, color: errorMessage.includes('successful') ? theme.success : theme.error}}>
+            {errorMessage}
+          </div>
 
-          {/* user input bar */}
           <div style={styles.inputGroup}>
             <UserCircle size={20} color={theme.textMuted} />
-            <input 
-              type="text" 
-              placeholder="plese enter username" 
-              style={styles.loginInput}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)} 
-            />
+            <input type="text" placeholder="Username" style={styles.loginInput} value={username} onChange={(e) => setUsername(e.target.value)} />
           </div>
 
-          {/* pw input bar */}
           <div style={styles.inputGroup}>
             <Lock size={20} color={theme.textMuted} />
-            <input 
-              type="password" 
-              placeholder="plese enter password" 
-              style={styles.loginInput}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)} 
-            />
+            <input type="password" placeholder="Password" style={styles.loginInput} value={password} onChange={(e) => setPassword(e.target.value)} />
           </div>
 
-          {/* login btn */}
-          <button 
-            style={styles.loginButton} 
-            onClick={handleLogin}
-          >
-            Login
+          <button style={styles.loginButton} onClick={isLoginMode ? handleLogin : handleRegister}>
+            {isLoginMode ? 'Log In' : 'Sign Up'}
           </button>
-          
+
+          <div 
+            style={styles.toggleText} 
+            onClick={() => {
+              setIsLoginMode(!isLoginMode); 
+              setErrorMessage('');          
+            }}
+          >
+            {isLoginMode ? 'No account? Click to register' : 'Already have an account? Click to log in'}
+          </div>
+
         </div>
       </div>
     );
-  };
+  }
+
 
   return (
     <div style={styles.container}>
