@@ -7,7 +7,7 @@ from .models import Book
 from .serializers import BookSerializer
 
 @api_view(['GET'])
-def get_books(request):
+def get_books(_request):
     books = Book.objects.all()
     serializer = BookSerializer(books, many=True)
     return Response(serializer.data)
@@ -25,7 +25,7 @@ def register(request):
         return Response({"error": "Username already exists, please choose another one!"}, status=400)
         
 
-    user = User.objects.create_user(username=username, password=password)
+    User.objects.create_user(username=username, password=password)
     return Response({"message": "Registration successful!"})
 
 
@@ -38,6 +38,6 @@ def user_login(request):
     user = authenticate(username=username, password=password)
     
     if user is not None:
-        return Response({"message": "Login successful!", "username": user.username})
+        return Response({"message": "Login successful!", "username": user.get_username()})
     else:
         return Response({"error": "Invalid username or password!"}, status=400)
