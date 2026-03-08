@@ -1,6 +1,5 @@
 import React from 'react';
 import { Book, User, Clock } from 'lucide-react';
-import { styles } from '../styles/styles';
 import { theme } from '../styles/theme';
 
 export default function DashboardPage({ borrowedBooks }) {

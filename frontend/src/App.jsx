@@ -11,6 +11,7 @@ export default function App() {
   const [view, setView] = useState('browse');
   const [search, setSearch] = useState('');
   const [books, setBooks] = useState(MOCK_BOOKS);
+  const [borrowedBooks] = useState(MOCK_BORROWED);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
@@ -25,6 +26,20 @@ export default function App() {
   const [addBookMessage, setAddBookMessage] = useState('');
 
   const filteredBooks = books.filter((book) => book.title.toLowerCase().includes(search.toLowerCase()));
+  const listedBooks = books.filter((book) => (book.owner || '').toLowerCase() === username.toLowerCase());
+
+  const loadBooks = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/books/');
+      if (!response.ok) {
+        return;
+      }
+      const data = await response.json();
+      setBooks(Array.isArray(data) ? data : []);
+    } catch {
+      // Keep the existing in-memory list if the backend is temporarily unavailable.
+    }
+  };
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -44,10 +59,11 @@ export default function App() {
         setIsLoggedIn(true);
         setUsername(data.username || username);
         setErrorMessage('');
+        await loadBooks();
       } else {
         setErrorMessage(data.error || 'Login failed, please check your credentials');
       }
-    } catch (error) {
+    } catch {
       setErrorMessage('Failed to connect to Django. Is the server running & CORS configured?');
     }
   };
@@ -73,7 +89,7 @@ export default function App() {
       } else {
         setErrorMessage(data.error || 'Registration failed, username may already exist');
       }
-    } catch (error) {
+    } catch {
       setErrorMessage('Failed to connect to Django. Is the server running & CORS configured?');
     }
   };
@@ -86,28 +102,41 @@ export default function App() {
     localStorage.removeItem('token');
   };
 
-  const handleAddBook = () => {
+  const handleAddBook = async () => {
     if (!newBookTitle.trim() || !newBookAuthor.trim() || !newBookGenre.trim() || !newBookIsbn.trim()) {
       setAddBookMessage('Please fill in title, author, genre, and ISBN.');
       return;
     }
 
-    const newBook = {
-      id: Date.now(),
-      title: newBookTitle.trim(),
-      author: newBookAuthor.trim(),
-      genre: newBookGenre.trim(),
-      isbn: newBookIsbn.trim(),
-      owner: username || 'Unknown',
-      rating: 5.0,
-    };
+    try {
+      const response = await fetch('http://localhost:8000/api/books/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newBookTitle.trim(),
+          author: newBookAuthor.trim(),
+          genre: newBookGenre.trim(),
+          isbn: newBookIsbn.trim(),
+          owner: username || 'Unknown',
+          rating: 5.0,
+        }),
+      });
 
-    setBooks((prev) => [newBook, ...prev]);
-    setNewBookTitle('');
-    setNewBookAuthor('');
-    setNewBookGenre('');
-    setNewBookIsbn('');
-    setAddBookMessage('Book added successfully.');
+      const data = await response.json();
+      if (!response.ok) {
+        setAddBookMessage(data.error || 'Failed to add the book.');
+        return;
+      }
+
+      setBooks((prev) => [data, ...prev]);
+      setNewBookTitle('');
+      setNewBookAuthor('');
+      setNewBookGenre('');
+      setNewBookIsbn('');
+      setAddBookMessage('Book added successfully.');
+    } catch {
+      setAddBookMessage('Could not reach backend. Please ensure Django is running.');
+    }
   };
 
   if (!isLoggedIn) {
@@ -135,12 +164,14 @@ export default function App() {
 
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         {view === 'browse' && <BrowsePage books={filteredBooks} />}
-        {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} />}
+        {view === 'dashboard' && <DashboardPage borrowedBooks={borrowedBooks} />}
         {view === 'profile' && (
           <ProfilePage
             username={username}
-            booksListed={books.length}
-            booksBorrowed={MOCK_BORROWED.length}
+            booksListed={listedBooks.length}
+            booksBorrowed={borrowedBooks.length}
+            listedBooks={listedBooks}
+            borrowedBooks={borrowedBooks}
             newBookTitle={newBookTitle}
             setNewBookTitle={setNewBookTitle}
             newBookAuthor={newBookAuthor}
