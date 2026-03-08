@@ -4,6 +4,7 @@ class Book(models.Model):
     title = models.CharField(max_length=200)
     author = models.CharField(max_length=100)
     genre = models.CharField(max_length=50)
+    isbn = models.CharField(max_length=20, default='')
     owner = models.CharField(max_length=100)
     rating = models.FloatField(default=0.0)
 
