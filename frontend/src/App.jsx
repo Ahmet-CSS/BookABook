@@ -14,6 +14,7 @@ export default function App() {
 
   const [borrowRequests, setBorrowRequests] = useState([]);
   const [exchangeRequests, setExchangeRequests] = useState([]);
+  const [selectedExchangeBook, setSelectedExchangeBook] = useState('');
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
@@ -113,9 +114,9 @@ export default function App() {
     setAddBookMessage('Book added successfully.');
   };
 
-  const handleBorrowRequest = (book) => {
+  const handleBorrowRequest = async (book) => {
   const alreadyRequested = borrowRequests.some(
-    (request) => request.bookTitle === book.title && request.owner === book.owner
+    (request) => request.book === book.id && request.borrower === username
   );
 
   if (alreadyRequested) {
@@ -123,16 +124,22 @@ export default function App() {
     return;
   }
 
-  
+  try {    const response = await fetch('http://localhost:8000/api/borrow/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ book_id: book.id, borrower: username }),
+    });
 
-  const newRequest = {
-    id: Date.now(),
-    bookTitle: book.title,
-    owner: book.owner,
-    status: 'Pending',
-  };
-
-  setBorrowRequests((prev) => [...prev, newRequest]);
+    const data = await response.json();
+    if (!response.ok) {
+      alert(data.error || 'Failed to create borrow request.');
+      return;
+    }
+    setBorrowRequests((prev) => [...prev, data]);
+    alert('Borrow request sent successfully!');
+  } catch (error) {
+    alert('Failed to connect to Django. Is the server running & CORS configured?');
+  } 
 };
 
 const handleExchangeRequest = (book) => {
@@ -186,8 +193,14 @@ const handleExchangeRequest = (book) => {
 
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         {view === 'browse' && <BrowsePage books={filteredBooks} onBorrowRequest={handleBorrowRequest} borrowRequests={borrowRequests}
-           onExchangeRequest={handleExchangeRequest} exchangeRequests={exchangeRequests} />}
+           onExchangeRequest={handleExchangeRequest} username={username} exchangeRequests={exchangeRequests}
+           myBooks={books.filter((b) => b.owner === username)}
+           selectedExchangeBook={selectedExchangeBook}
+           setSelectedExchangeBook={setSelectedExchangeBook}
+            />}
+
         {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} borrowRequests={borrowRequests} exchangeRequests={exchangeRequests} />}
+
         {view === 'profile' && (
           <ProfilePage
             username={username}
