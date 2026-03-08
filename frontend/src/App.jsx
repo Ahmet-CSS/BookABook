@@ -12,6 +12,8 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [books, setBooks] = useState(MOCK_BOOKS);
 
+  const [borrowRequests, setBorrowRequests] = useState([]);
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -110,6 +112,26 @@ export default function App() {
     setAddBookMessage('Book added successfully.');
   };
 
+  const handleBorrowRequest = (book) => {
+  const alreadyRequested = borrowRequests.some(
+    (request) => request.bookTitle === book.title && request.owner === book.owner
+  );
+
+  if (alreadyRequested) {
+    alert('You already requested this book.');
+    return;
+  }
+
+  const newRequest = {
+    id: Date.now(),
+    bookTitle: book.title,
+    owner: book.owner,
+    status: 'Pending',
+  };
+
+  setBorrowRequests((prev) => [...prev, newRequest]);
+};
+
   if (!isLoggedIn) {
     return (
       <LoginPage
@@ -134,8 +156,8 @@ export default function App() {
       <Navbar view={view} setView={setView} search={search} setSearch={setSearch} onLogout={handleLogout} />
 
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        {view === 'browse' && <BrowsePage books={filteredBooks} />}
-        {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} />}
+        {view === 'browse' && <BrowsePage books={filteredBooks} onBorrowRequest={handleBorrowRequest} borrowRequests={borrowRequests}   />}
+        {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} borrowRequests={borrowRequests} />}
         {view === 'profile' && (
           <ProfilePage
             username={username}

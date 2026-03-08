@@ -3,7 +3,7 @@ import { Star } from 'lucide-react';
 import { styles } from '../styles/styles';
 import { theme } from '../styles/theme';
 
-export default function BrowsePage({ books }) {
+export default function BrowsePage({ books, onBorrowRequest, borrowRequests = []}) {
   return (
     <div>
       <h2 style={{ fontSize: '32px', fontWeight: '900', marginBottom: '30px' }}>LIBRARY CATALOG</h2>
@@ -48,7 +48,14 @@ export default function BrowsePage({ books }) {
               </div>
             </div>
 
-            <button style={styles.button}>Request Borrow</button>
+            <button style={styles.button}
+            onClick={() => onBorrowRequest(book)}
+            disabled={borrowRequests.some(
+            (request) => request.bookTitle === book.title && request.owner === book.owner)} >
+            {borrowRequests.some(
+           (request) => request.bookTitle === book.title && request.owner === book.owner )
+          ? 'Requested'
+          : 'Request Borrow'}</button>
           </div>
         ))}
       </div>
