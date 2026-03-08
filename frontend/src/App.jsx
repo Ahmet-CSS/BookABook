@@ -143,12 +143,18 @@ const handleExchangeRequest = (book) => {
       alert('You already requested this book for exchange.');
       return;
     }
+    const myBooks = books.filter((b) => b.owner === username);
+    if (myBooks.length === 0) {
+      alert('You need to have at least one book listed to request an exchange.');
+      return;
+    }
+
     
     const newRequest = {
       id: Date.now(),
       requestedBookTitle: book.title,
       owner: book.owner,
-      offeredBookTitle: 'My Personal Book', // This would be set when the user selects a book to offer in exchange
+      offeredBookTitle: myBooks[0].title, // For simplicity, we just offer the first book we have listed
       status: 'Pending',
     };
     setExchangeRequests((prev) => [...prev, newRequest]);
