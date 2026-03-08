@@ -13,6 +13,7 @@ export default function App() {
   const [books, setBooks] = useState(MOCK_BOOKS);
 
   const [borrowRequests, setBorrowRequests] = useState([]);
+  const [exchangeRequests, setExchangeRequests] = useState([]);
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
@@ -122,6 +123,8 @@ export default function App() {
     return;
   }
 
+  
+
   const newRequest = {
     id: Date.now(),
     bookTitle: book.title,
@@ -131,6 +134,26 @@ export default function App() {
 
   setBorrowRequests((prev) => [...prev, newRequest]);
 };
+
+const handleExchangeRequest = (book) => {
+    const alreadyRequested = exchangeRequests.some(
+      (request) => request.requestedBookTitle === book.title && request.owner === book.owner
+    );
+    if (alreadyRequested) {
+      alert('You already requested this book for exchange.');
+      return;
+    }
+    
+    const newRequest = {
+      id: Date.now(),
+      requestedBookTitle: book.title,
+      owner: book.owner,
+      offeredBookTitle: 'My Personal Book', // This would be set when the user selects a book to offer in exchange
+      status: 'Pending',
+    };
+    setExchangeRequests((prev) => [...prev, newRequest]);
+  };
+    
 
   if (!isLoggedIn) {
     return (
@@ -156,8 +179,9 @@ export default function App() {
       <Navbar view={view} setView={setView} search={search} setSearch={setSearch} onLogout={handleLogout} />
 
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        {view === 'browse' && <BrowsePage books={filteredBooks} onBorrowRequest={handleBorrowRequest} borrowRequests={borrowRequests}   />}
-        {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} borrowRequests={borrowRequests} />}
+        {view === 'browse' && <BrowsePage books={filteredBooks} onBorrowRequest={handleBorrowRequest} borrowRequests={borrowRequests}
+           onExchangeRequest={handleExchangeRequest} exchangeRequests={exchangeRequests} />}
+        {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} borrowRequests={borrowRequests} exchangeRequests={exchangeRequests} />}
         {view === 'profile' && (
           <ProfilePage
             username={username}
