@@ -7,11 +7,22 @@ from rest_framework import status
 from .models import Book, BorrowRequest
 from .serializers import BookSerializer, BorrowRequestSerializer
 
-@api_view(['GET'])
-def get_books(_request):
-    books = Book.objects.all()
-    serializer = BookSerializer(books, many=True)
-    return Response(serializer.data)
+@api_view(['GET', 'POST'])
+def books_collection(request):
+    if request.method == 'GET':
+        books = Book.objects.all().order_by('-id')
+        serializer = BookSerializer(books, many=True)
+        return Response(serializer.data)
+
+    isbn = str(request.data.get('isbn', '')).strip()
+    if not isbn:
+        return Response({"error": "ISBN is required."}, status=400)
+
+    serializer = BookSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=201)
+    return Response(serializer.errors, status=400)
 
 
 @api_view(['POST'])
