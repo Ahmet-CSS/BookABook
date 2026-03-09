@@ -76,3 +76,13 @@ def create_borrow_request(request):
     borrow_request = BorrowRequest.objects.create(book=book, borrower=borrower, status='pending')
     serializer = BorrowRequestSerializer(borrow_request)
     return Response(serializer.data, status=201)
+
+@api_view(['GET'])
+def get_borrow_requests(request):
+    borrower = request.GET.get('borrower')
+    if not borrower:
+        return Response({"error": "Borrower is required!"}, status=400)
+    
+    requests = BorrowRequest.objects.filter(borrower=borrower)
+    serializer = BorrowRequestSerializer(requests, many=True)
+    return Response(serializer.data, status=200)

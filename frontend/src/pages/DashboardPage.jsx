@@ -59,9 +59,9 @@ export default function DashboardPage({ borrowedBooks, borrowRequests = [], exch
                 marginBottom: '10px',
               }}
             >
-              <div style={{ fontWeight: 'bold' }}>{request.bookTitle}</div>
+              <div style={{ fontWeight: 'bold' }}>{request.book_title}</div>
               <div style={{ fontSize: '12px', color: theme.textMuted }}>
-                Owner: {request.owner}
+                Borrower: {request.borrower}
               </div>
               <div style={{ fontSize: '12px', color: theme.textMuted }}>
                 Status: {request.status}
