@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { styles } from './styles/styles';
 import { MOCK_BOOKS, MOCK_BORROWED } from './data/mock';
 import Navbar from './components/Navbar';
@@ -11,6 +11,11 @@ export default function App() {
   const [view, setView] = useState('browse');
   const [search, setSearch] = useState('');
   const [books, setBooks] = useState(MOCK_BOOKS);
+  const [borrowedBooks] = useState(MOCK_BORROWED);
+
+  const [borrowRequests, setBorrowRequests] = useState([]);
+  const [exchangeRequests, setExchangeRequests] = useState([]);
+  const [selectedExchangeBook, setSelectedExchangeBook] = useState('');
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
@@ -25,6 +30,20 @@ export default function App() {
   const [addBookMessage, setAddBookMessage] = useState('');
 
   const filteredBooks = books.filter((book) => book.title.toLowerCase().includes(search.toLowerCase()));
+  const listedBooks = books.filter((book) => (book.owner || '').toLowerCase() === username.toLowerCase());
+
+  const loadBooks = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/api/books/');
+      if (!response.ok) {
+        return;
+      }
+      const data = await response.json();
+      setBooks(Array.isArray(data) ? data : []);
+    } catch {
+      // Keep the existing in-memory list if the backend is temporarily unavailable.
+    }
+  };
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -44,10 +63,11 @@ export default function App() {
         setIsLoggedIn(true);
         setUsername(data.username || username);
         setErrorMessage('');
+        await loadBooks();
       } else {
         setErrorMessage(data.error || 'Login failed, please check your credentials');
       }
-    } catch (error) {
+    } catch {
       setErrorMessage('Failed to connect to Django. Is the server running & CORS configured?');
     }
   };
@@ -73,7 +93,7 @@ export default function App() {
       } else {
         setErrorMessage(data.error || 'Registration failed, username may already exist');
       }
-    } catch (error) {
+    } catch {
       setErrorMessage('Failed to connect to Django. Is the server running & CORS configured?');
     }
   };
@@ -86,29 +106,118 @@ export default function App() {
     localStorage.removeItem('token');
   };
 
-  const handleAddBook = () => {
+  const handleAddBook = async () => {
     if (!newBookTitle.trim() || !newBookAuthor.trim() || !newBookGenre.trim() || !newBookIsbn.trim()) {
       setAddBookMessage('Please fill in title, author, genre, and ISBN.');
       return;
     }
 
-    const newBook = {
-      id: Date.now(),
-      title: newBookTitle.trim(),
-      author: newBookAuthor.trim(),
-      genre: newBookGenre.trim(),
-      isbn: newBookIsbn.trim(),
-      owner: username || 'Unknown',
-      rating: 5.0,
-    };
+    try {
+      const response = await fetch('http://localhost:8000/api/books/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newBookTitle.trim(),
+          author: newBookAuthor.trim(),
+          genre: newBookGenre.trim(),
+          isbn: newBookIsbn.trim(),
+          owner: username || 'Unknown',
+          rating: 5.0,
+        }),
+      });
 
-    setBooks((prev) => [newBook, ...prev]);
-    setNewBookTitle('');
-    setNewBookAuthor('');
-    setNewBookGenre('');
-    setNewBookIsbn('');
-    setAddBookMessage('Book added successfully.');
+      const data = await response.json();
+      if (!response.ok) {
+        setAddBookMessage(data.error || 'Failed to add the book.');
+        return;
+      }
+
+      setBooks((prev) => [data, ...prev]);
+      setNewBookTitle('');
+      setNewBookAuthor('');
+      setNewBookGenre('');
+      setNewBookIsbn('');
+      setAddBookMessage('Book added successfully.');
+    } catch {
+      setAddBookMessage('Could not reach backend. Please ensure Django is running.');
+    }
   };
+
+  const handleBorrowRequest = async (book) => {
+  const alreadyRequested = borrowRequests.some(
+    (request) => request.book === book.id && request.borrower === username
+  );
+
+  if (alreadyRequested) {
+    alert('You already requested this book.');
+    return;
+  }
+
+  try {    const response = await fetch('http://localhost:8000/api/borrow/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ book_id: book.id, borrower: username }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      alert(data.error || 'Failed to create borrow request.');
+      return;
+    }
+    setBorrowRequests((prev) => [...prev, data]);
+    alert('Borrow request sent successfully!');
+  } catch (error) {
+    alert('Failed to connect to Django. Is the server running & CORS configured?');
+  } 
+};
+
+const handleExchangeRequest = (book) => {
+    const alreadyRequested = exchangeRequests.some(
+      (request) => request.requestedBookTitle === book.title && request.owner === book.owner
+    );
+    if (alreadyRequested) {
+      alert('You already requested this book for exchange.');
+      return;
+    }
+    const myBooks = books.filter((b) => b.owner === username);
+    if (myBooks.length === 0) {
+      alert('You need to have at least one book listed to request an exchange.');
+      return;
+    }
+
+    
+    const newRequest = {
+      id: Date.now(),
+      requestedBookTitle: book.title,
+      owner: book.owner,
+      offeredBookTitle: myBooks[0].title, // For simplicity, we just offer the first book we have listed
+      status: 'Pending',
+    };
+    setExchangeRequests((prev) => [...prev, newRequest]);
+  };
+
+
+  useEffect(() => {
+  const fetchBorrowRequests = async () => {
+    if (!isLoggedIn || !username) return;
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/borrow-requests/?borrower=${username}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setBorrowRequests(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch borrow requests:', error);
+    }
+  };
+
+  fetchBorrowRequests();
+}, [isLoggedIn, username]);
+
+
+    
 
   if (!isLoggedIn) {
     return (
@@ -134,13 +243,22 @@ export default function App() {
       <Navbar view={view} setView={setView} search={search} setSearch={setSearch} onLogout={handleLogout} />
 
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        {view === 'browse' && <BrowsePage books={filteredBooks} />}
-        {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} />}
+        {view === 'browse' && <BrowsePage books={filteredBooks} onBorrowRequest={handleBorrowRequest} borrowRequests={borrowRequests}
+           onExchangeRequest={handleExchangeRequest} username={username} exchangeRequests={exchangeRequests}
+           myBooks={books.filter((b) => b.owner === username)}
+           selectedExchangeBook={selectedExchangeBook}
+           setSelectedExchangeBook={setSelectedExchangeBook}
+            />}
+
+        {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} borrowRequests={borrowRequests} exchangeRequests={exchangeRequests} />}
+
         {view === 'profile' && (
           <ProfilePage
             username={username}
-            booksListed={books.length}
-            booksBorrowed={MOCK_BORROWED.length}
+            booksListed={listedBooks.length}
+            booksBorrowed={borrowedBooks.length}
+            listedBooks={listedBooks}
+            borrowedBooks={borrowedBooks}
             newBookTitle={newBookTitle}
             setNewBookTitle={setNewBookTitle}
             newBookAuthor={newBookAuthor}
