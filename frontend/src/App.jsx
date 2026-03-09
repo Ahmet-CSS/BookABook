@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { styles } from './styles/styles';
 import { MOCK_BOOKS, MOCK_BORROWED } from './data/mock';
 import Navbar from './components/Navbar';
@@ -195,6 +195,28 @@ const handleExchangeRequest = (book) => {
     };
     setExchangeRequests((prev) => [...prev, newRequest]);
   };
+
+
+  useEffect(() => {
+  const fetchBorrowRequests = async () => {
+    if (!isLoggedIn || !username) return;
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/borrow-requests/?borrower=${username}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        setBorrowRequests(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch borrow requests:', error);
+    }
+  };
+
+  fetchBorrowRequests();
+}, [isLoggedIn, username]);
+
+
     
 
   if (!isLoggedIn) {
