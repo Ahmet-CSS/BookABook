@@ -3,7 +3,7 @@ from . import views
 from .views import get_books, register, user_login, create_borrow_request
 
 urlpatterns = [
-    path('books/', views.get_books), 
+    path('books/', views.books_collection),
     path('login/', views.user_login),     
     path('register/', views.register),     
     path('borrow/', views.create_borrow_request),     
