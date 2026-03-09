@@ -1,6 +1,6 @@
 from django.urls import include, path
 from . import views
-from .views import get_books, register, user_login, create_borrow_request
+from .views import  register, user_login, create_borrow_request
 
 urlpatterns = [
     path('books/', views.books_collection),
