@@ -1,9 +1,10 @@
 import React from 'react';
-import { Star } from 'lucide-react';
+import { Star, User } from 'lucide-react';
 import { styles } from '../styles/styles';
 import { theme } from '../styles/theme';
 
-export default function BrowsePage({ books }) {
+export default function BrowsePage({ books, onBorrowRequest, borrowRequests = [], username,  onExchangeRequest, exchangeRequests = [], 
+  myBooks = [], selectedExchangeBook, setSelectedExchangeBook}) {
   return (
     <div>
       <h2 style={{ fontSize: '32px', fontWeight: '900', marginBottom: '30px' }}>LIBRARY CATALOG</h2>
@@ -48,7 +49,28 @@ export default function BrowsePage({ books }) {
               </div>
             </div>
 
-            <button style={styles.button}>Request Borrow</button>
+            <button style={styles.button}
+            onClick={() => onBorrowRequest(book)}
+            disabled={borrowRequests.some(
+            (request) => request.book === book.id && request.borrower === username)} >
+            {borrowRequests.some(
+           (request) => request.book === book.id && request.borrower === username )
+          ? 'Requested'
+          : 'Request Borrow'}</button>
+
+          <button
+          style={{ ...styles.button, background: theme.secondary, marginTop: '10px' }}
+          onClick={() => onExchangeRequest(book)}
+          disabled={exchangeRequests.some(
+            (request) => request.requestedBookTitle === book.title && request.owner === book.owner
+          )}
+          >
+            {exchangeRequests.some(
+              (request) => request.requestedBookTitle === book.title && request.owner === book.owner
+            )
+              ? 'Exchange Requested'
+              : 'Request Exchange'}
+          </button>
           </div>
         ))}
       </div>

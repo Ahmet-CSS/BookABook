@@ -13,6 +13,10 @@ export default function App() {
   const [books, setBooks] = useState(MOCK_BOOKS);
   const [borrowedBooks] = useState(MOCK_BORROWED);
 
+  const [borrowRequests, setBorrowRequests] = useState([]);
+  const [exchangeRequests, setExchangeRequests] = useState([]);
+  const [selectedExchangeBook, setSelectedExchangeBook] = useState('');
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -139,6 +143,60 @@ export default function App() {
     }
   };
 
+  const handleBorrowRequest = async (book) => {
+  const alreadyRequested = borrowRequests.some(
+    (request) => request.book === book.id && request.borrower === username
+  );
+
+  if (alreadyRequested) {
+    alert('You already requested this book.');
+    return;
+  }
+
+  try {    const response = await fetch('http://localhost:8000/api/borrow/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ book_id: book.id, borrower: username }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      alert(data.error || 'Failed to create borrow request.');
+      return;
+    }
+    setBorrowRequests((prev) => [...prev, data]);
+    alert('Borrow request sent successfully!');
+  } catch (error) {
+    alert('Failed to connect to Django. Is the server running & CORS configured?');
+  } 
+};
+
+const handleExchangeRequest = (book) => {
+    const alreadyRequested = exchangeRequests.some(
+      (request) => request.requestedBookTitle === book.title && request.owner === book.owner
+    );
+    if (alreadyRequested) {
+      alert('You already requested this book for exchange.');
+      return;
+    }
+    const myBooks = books.filter((b) => b.owner === username);
+    if (myBooks.length === 0) {
+      alert('You need to have at least one book listed to request an exchange.');
+      return;
+    }
+
+    
+    const newRequest = {
+      id: Date.now(),
+      requestedBookTitle: book.title,
+      owner: book.owner,
+      offeredBookTitle: myBooks[0].title, // For simplicity, we just offer the first book we have listed
+      status: 'Pending',
+    };
+    setExchangeRequests((prev) => [...prev, newRequest]);
+  };
+    
+
   if (!isLoggedIn) {
     return (
       <LoginPage
@@ -163,8 +221,15 @@ export default function App() {
       <Navbar view={view} setView={setView} search={search} setSearch={setSearch} onLogout={handleLogout} />
 
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        {view === 'browse' && <BrowsePage books={filteredBooks} />}
-        {view === 'dashboard' && <DashboardPage borrowedBooks={borrowedBooks} />}
+        {view === 'browse' && <BrowsePage books={filteredBooks} onBorrowRequest={handleBorrowRequest} borrowRequests={borrowRequests}
+           onExchangeRequest={handleExchangeRequest} username={username} exchangeRequests={exchangeRequests}
+           myBooks={books.filter((b) => b.owner === username)}
+           selectedExchangeBook={selectedExchangeBook}
+           setSelectedExchangeBook={setSelectedExchangeBook}
+            />}
+
+        {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} borrowRequests={borrowRequests} exchangeRequests={exchangeRequests} />}
+
         {view === 'profile' && (
           <ProfilePage
             username={username}
