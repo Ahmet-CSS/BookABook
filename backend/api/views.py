@@ -5,8 +5,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework import status
 
-from .models import Book, BorrowRequest
-from .serializers import BookSerializer, BorrowRequestSerializer
+from .models import Book, BorrowRequest, Reservation
+from .serializers import BookSerializer, BorrowRequestSerializer, ReservationSerializer
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -91,6 +91,49 @@ def get_borrow_requests(request):
     requests = BorrowRequest.objects.filter(borrower=borrower)
     serializer = BorrowRequestSerializer(requests, many=True)
     return Response(serializer.data, status=200)
+
+# views for reservation and exchange requests
+@api_view(['POST'])
+def create_reservation(request):
+    book_id = request.data.get('book_id')
+    reserver = request.data.get('reserver')
+
+    if not book_id or not reserver:
+        return Response(
+            {'error': 'book_id and reserver are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        book = Book.objects.get(id=book_id)
+    except Book.DoesNotExist:
+        return Response(
+            {'error': 'Book not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if book.status != 'unavailable':
+        return Response(
+            {'error': 'Only unavailable books can be reserved'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    existing_reservation = Reservation.objects.filter(book=book, reserver=reserver).first()
+    if existing_reservation:
+        return Response(
+            {'error': 'You already reserved this book'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    reservation = Reservation.objects.create(
+        book=book,
+        reserver=reserver,
+        status='pending'
+    )
+
+    serializer = ReservationSerializer(reservation)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 
 

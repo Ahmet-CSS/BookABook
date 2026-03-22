@@ -12,4 +12,5 @@ urlpatterns = [
     path('exchange-requests/', get_exchange_requests),
     path('exchange-request/<int:request_id>/accept/', accept_exchange_request),
     path('exchange-request/<int:request_id>/reject/', reject_exchange_request),
+    path('reserve/', views.create_reservation, name='reserve'),
 ]
