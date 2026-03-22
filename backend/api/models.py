@@ -8,6 +8,7 @@ class Book(models.Model):
     isbn = models.CharField(max_length=20, default='')
     owner = models.CharField(max_length=100)
     rating = models.FloatField(default=0.0)
+    status = models.CharField(max_length=20, default='available')  # available, borrowed, exchanged
 
     def __str__(self):
         return self.title
@@ -30,3 +31,12 @@ class ExchangeRequest(models.Model):
 
     def __str__(self):
         return f"{self.requester} wants to exchange {self.book.title} for {self.offered_book_title}"
+
+
+
+class Reservation(models.Model):
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    user = models.CharField(max_length=100)
+    status = models.CharField(max_length=20, default='pending')  # active, completed, cancelled
+    def __str__(self):
+        return f"{self.user} reserved {self.book.title}"
