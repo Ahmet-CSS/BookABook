@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import BrowsePage from './pages/BrowsePage';
 import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
+import { theme } from './styles/theme';
 
 export default function App() {
   const [view, setView] = useState('browse');
@@ -16,6 +17,11 @@ export default function App() {
   const [borrowRequests, setBorrowRequests] = useState([]);
   const [exchangeRequests, setExchangeRequests] = useState([]);
   const [selectedExchangeBook, setSelectedExchangeBook] = useState('');
+
+  //state for popup
+  const [isExchangeModalOpen, setIsExchangeModalOpen] = useState(false);
+  const [selectedBookForExchange, setSelectedBookForExchange] = useState(null);
+  const [targetBook, setTargetBook] = useState(null); // the book user wants
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
@@ -186,14 +192,8 @@ const handleExchangeRequest = (book) => {
     }
 
     
-    const newRequest = {
-      id: Date.now(),
-      requestedBookTitle: book.title,
-      owner: book.owner,
-      offeredBookTitle: myBooks[0].title, // For simplicity, we just offer the first book we have listed
-      status: 'Pending',
-    };
-    setExchangeRequests((prev) => [...prev, newRequest]);
+    setTargetBook(book);
+    setIsExchangeModalOpen(true);
   };
 
 
@@ -271,7 +271,133 @@ const handleExchangeRequest = (book) => {
             onAddBook={handleAddBook}
           />
         )}
+        
+{/* popup for exchange request*/}
+      </div>
+      {isExchangeModalOpen && (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        background: 'rgba(0,0,0,0.6)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+      }}>
+         <div style={{
+      background: theme.cardBg,
+      padding: '30px',
+      borderRadius: '24px',
+      width: '420px',
+      border: `1px solid ${theme.border}`,
+      boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      animation: 'fadeIn 0.2s ease'
+    }}>
+      
+        <h3 style={{
+        fontSize: '20px',
+        fontWeight: 'bold',
+        marginBottom: '20px',
+        borderBottom: `1px solid ${theme.border}`,
+        paddingBottom: '10px'
+        }}>
+           Select a book to Exchange 
+           </h3>
+
+
+          {/* BOOK LIST */}
+      <div style={{ maxHeight: '250px', overflowY: 'auto', marginBottom: '20px' }}>
+        {books
+          .filter((b) => b.owner === username)
+          .map((b) => (
+            <div
+              key={b.id}
+              onClick={() => setSelectedBookForExchange(b)}
+              style={{
+                padding: '12px',
+                borderRadius: '12px',
+                marginBottom: '10px',
+                cursor: 'pointer',
+                background:
+                  selectedBookForExchange?.id === b.id
+                    ? theme.primary
+                    : theme.bg,
+                color:
+                  selectedBookForExchange?.id === b.id
+                    ? 'white'
+                    : theme.text,
+                border: `1px solid ${theme.border}`,
+                transition: '0.2s'
+              }}
+            >
+              {b.title}
+            </div>
+          ))}
+      </div>
+
+      {/* ACTIONS */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+        
+        <button
+          style={{
+            flex: 1,
+            padding: '12px',
+            borderRadius: '12px',
+            border: 'none',
+            background: theme.border,
+            color: theme.text,
+            cursor: 'pointer'
+          }}
+          onClick={() => {
+            setIsExchangeModalOpen(false);
+            setSelectedBookForExchange(null);
+            setTargetBook(null);
+          }}
+        >
+          Cancel
+        </button>
+
+        <button
+          style={{
+            flex: 1,
+            padding: '12px',
+            borderRadius: '12px',
+            border: 'none',
+            background: theme.primary,
+            color: 'white',
+            fontWeight: 'bold',
+            cursor: 'pointer'
+          }}
+          onClick={() => {
+            if (!selectedBookForExchange) {
+              alert('Select a book first');
+              return;
+            }
+
+            const newRequest = {
+              id: Date.now(),
+              requestedBookTitle: targetBook.title,
+              owner: targetBook.owner,
+              offeredBookTitle: selectedBookForExchange.title,
+              status: 'Pending',
+            };
+
+            setExchangeRequests((prev) => [...prev, newRequest]);
+
+            setIsExchangeModalOpen(false);
+            setSelectedBookForExchange(null);
+            setTargetBook(null);
+          }}
+        >
+          Confirm
+        </button>
       </div>
     </div>
-  );
+  </div>
+)}
+    </div>
+);
 }
