@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { styles } from './styles/styles';
-import { MOCK_BOOKS, MOCK_BORROWED } from './data/mock';
 import Navbar from './components/Navbar';
 import LoginPage from './pages/LoginPage';
 import BrowsePage from './pages/BrowsePage';
@@ -11,8 +10,8 @@ import NotificationsPage from './pages/NotificationsPage';
 export default function App() {
   const [view, setView] = useState('browse');
   const [search, setSearch] = useState('');
-  const [books, setBooks] = useState(MOCK_BOOKS);
-  const [borrowedBooks] = useState(MOCK_BORROWED);
+  const [books, setBooks] = useState([]);
+  const [borrowedBooks] = useState([]);
 
   const [borrowRequests, setBorrowRequests] = useState([]);
   const [exchangeRequests, setExchangeRequests] = useState([]);
@@ -251,7 +250,7 @@ const handleExchangeRequest = (book) => {
            setSelectedExchangeBook={setSelectedExchangeBook}
             />}
 
-        {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} borrowRequests={borrowRequests} exchangeRequests={exchangeRequests} />}
+        {view === 'dashboard' && <DashboardPage borrowedBooks={borrowedBooks} borrowRequests={borrowRequests} exchangeRequests={exchangeRequests} />}
 
         {view === 'notifications' && <NotificationsPage borrowRequests={borrowRequests} exchangeRequests={exchangeRequests} />}
 
