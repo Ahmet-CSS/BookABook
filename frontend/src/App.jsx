@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import BrowsePage from './pages/BrowsePage';
 import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
+import NotificationsPage from './pages/NotificationsPage';
 
 export default function App() {
   const [view, setView] = useState('browse');
@@ -251,6 +252,8 @@ const handleExchangeRequest = (book) => {
             />}
 
         {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} borrowRequests={borrowRequests} exchangeRequests={exchangeRequests} />}
+
+        {view === 'notifications' && <NotificationsPage borrowRequests={borrowRequests} exchangeRequests={exchangeRequests} />}
 
         {view === 'profile' && (
           <ProfilePage

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Search, Sparkles, LogOut } from 'lucide-react';
+import { Search, Sparkles, LogOut, Bell } from 'lucide-react';
 import { styles } from '../styles/styles';
 import { theme } from '../styles/theme';
 
@@ -25,6 +25,10 @@ export default function Navbar({ view, setView, search, setSearch, onLogout }) {
       <div style={styles.navButtons}>
         <button style={styles.navBtn(view === 'browse')} onClick={() => setView('browse')}>Discover</button>
         <button style={styles.navBtn(view === 'dashboard')} onClick={() => setView('dashboard')}>Dashboard</button>
+        <button style={styles.navBtn(view === 'notifications')} onClick={() => setView('notifications')}>
+          <Bell size={14} style={{ verticalAlign: 'text-bottom', marginRight: '6px' }} />
+          Notifications
+        </button>
         <button style={styles.navBtn(view === 'profile')} onClick={() => setView('profile')}>Profile</button>
 
         <div style={{ width: '1px', height: '20px', backgroundColor: theme.border, margin: '0 10px' }}></div>
