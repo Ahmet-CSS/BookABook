@@ -135,7 +135,19 @@ def create_reservation(request):
     return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+# view to get reservations for a user
+@api_view(['GET'])
+def get_reservations(request):
+    reserver = request.GET.get('reserver')
+    if not reserver:
+        return Response(
+            {'error': 'reserver is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
+    reservations = Reservation.objects.filter(reserver=reserver)
+    serializer = ReservationSerializer(reservations, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
     
 @csrf_exempt

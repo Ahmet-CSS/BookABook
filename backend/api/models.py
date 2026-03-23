@@ -36,7 +36,7 @@ class ExchangeRequest(models.Model):
 
 class Reservation(models.Model):
     book = models.ForeignKey(Book, on_delete=models.CASCADE)
-    user = models.CharField(max_length=100)
-    status = models.CharField(max_length=20, default='pending')  # active, completed, cancelled
+    reserver = models.CharField(max_length=100)
+    status = models.CharField(max_length=30, default='pending')  # active, completed, cancelled
     def __str__(self):
-        return f"{self.user} reserved {self.book.title}"
+        return f"{self.reserver} reserved {self.book.title}"
