@@ -1,11 +1,15 @@
 import React from 'react';
-import { Bell, BookOpen, Repeat, Inbox } from 'lucide-react';
+import { Bell, BookOpen, Inbox, User } from 'lucide-react';
 import { theme } from '../styles/theme';
 
-export default function NotificationsPage({ borrowRequests = [], exchangeRequests = [] }) {
-  const hasNotifications = borrowRequests.length > 0 || exchangeRequests.length > 0;
+export default function NotificationsPage({
+  borrowRequests = [],
+  receivedBorrowRequests = [],
+  onUndoBorrowRequest,
+}) {
+  const hasNotifications = borrowRequests.length > 0 || receivedBorrowRequests.length > 0;
 
-  function renderNotificationBox(icon, lineColor, boxColor, title, message, key) {
+  function renderNotificationBox(icon, lineColor, boxColor, title, message, key, showUndoButton, requestId) {
     return (
       <div
         key={key}
@@ -38,6 +42,24 @@ export default function NotificationsPage({ borrowRequests = [], exchangeRequest
         <div>
           <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>{title}</div>
           <div style={{ fontSize: '14px', color: theme.textMuted }}>{message}</div>
+          {showUndoButton ? (
+            <button
+              style={{
+                marginTop: '10px',
+                background: 'transparent',
+                border: `1px solid ${theme.border}`,
+                borderRadius: '8px',
+                color: theme.error,
+                cursor: 'pointer',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+              }}
+              onClick={() => onUndoBorrowRequest(requestId)}
+            >
+              Undo Request
+            </button>
+          ) : null}
         </div>
       </div>
     );
@@ -70,20 +92,24 @@ export default function NotificationsPage({ borrowRequests = [], exchangeRequest
               <BookOpen size={18} />,
               theme.primary,
               `${theme.primary}22`,
-              request.book_title || 'Borrow request',
-              `Borrow request status: ${request.status || 'Pending'}`,
-              `borrow-${request.id}`
+              'Borrowing a book',
+              `You asked to borrow "${request.book_title || 'a book'}". Status: ${request.status || 'Pending'}`,
+              `borrow-${request.id}`,
+              true,
+              request.id
             )
           )}
 
-          {exchangeRequests.map((request) =>
+          {receivedBorrowRequests.map((request) =>
             renderNotificationBox(
-              <Repeat size={18} />,
+              <User size={18} />,
               theme.secondary,
               `${theme.secondary}22`,
-              request.requestedBookTitle || 'Exchange request',
-              `Offered book: ${request.offeredBookTitle || 'Unknown book'} | Status: ${request.status || 'Pending'}`,
-              `exchange-${request.id}`
+              'Someone wants your book',
+              `${request.borrower || 'A user'} wants to borrow "${request.book_title || 'your book'}". Status: ${request.status || 'Pending'}`,
+              `received-${request.id}`,
+              false,
+              request.id
             )
           )}
         </div>

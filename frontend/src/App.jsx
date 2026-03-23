@@ -14,6 +14,7 @@ export default function App() {
   const [borrowedBooks] = useState([]);
 
   const [borrowRequests, setBorrowRequests] = useState([]);
+  const [receivedBorrowRequests, setReceivedBorrowRequests] = useState([]);
   const [exchangeRequests, setExchangeRequests] = useState([]);
   const [selectedExchangeBook, setSelectedExchangeBook] = useState('');
 
@@ -103,6 +104,9 @@ export default function App() {
     setUsername('');
     setPassword('');
     setView('browse');
+    setBorrowRequests([]);
+    setReceivedBorrowRequests([]);
+    setExchangeRequests([]);
     localStorage.removeItem('token');
   };
 
@@ -144,32 +148,55 @@ export default function App() {
   };
 
   const handleBorrowRequest = async (book) => {
-  const alreadyRequested = borrowRequests.some(
-    (request) => request.book === book.id && request.borrower === username
-  );
+    const alreadyRequested = borrowRequests.some(
+      (request) => request.book === book.id && request.borrower === username
+    );
 
-  if (alreadyRequested) {
-    alert('You already requested this book.');
-    return;
-  }
-
-  try {    const response = await fetch('http://localhost:8000/api/borrow/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ book_id: book.id, borrower: username }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      alert(data.error || 'Failed to create borrow request.');
+    if (alreadyRequested) {
+      alert('You already requested this book.');
       return;
     }
-    setBorrowRequests((prev) => [...prev, data]);
-    alert('Borrow request sent successfully!');
-  } catch (error) {
-    alert('Failed to connect to Django. Is the server running & CORS configured?');
-  } 
-};
+
+    try {
+      const response = await fetch('http://localhost:8000/api/borrow/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ book_id: book.id, borrower: username }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error || 'Failed to create borrow request.');
+        return;
+      }
+
+      setBorrowRequests((prev) => [...prev, data]);
+      setReceivedBorrowRequests((prev) => [...prev, data]);
+      alert('Borrow request sent successfully!');
+    } catch (error) {
+      alert('Failed to connect to Django. Is the server running & CORS configured?');
+    }
+  };
+
+  const handleUndoBorrowRequest = async (requestId) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/borrow-request/${requestId}/`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error || 'Failed to undo borrow request.');
+        return;
+      }
+
+      setBorrowRequests((prev) => prev.filter((request) => request.id !== requestId));
+      setReceivedBorrowRequests((prev) => prev.filter((request) => request.id !== requestId));
+      alert('Borrow request removed.');
+    } catch (error) {
+      alert('Failed to connect to Django. Is the server running & CORS configured?');
+    }
+  };
 
 const handleExchangeRequest = (book) => {
     const alreadyRequested = exchangeRequests.some(
@@ -198,23 +225,43 @@ const handleExchangeRequest = (book) => {
 
 
   useEffect(() => {
-  const fetchBorrowRequests = async () => {
-    if (!isLoggedIn || !username) return;
-
-    try {
-      const response = await fetch(`http://localhost:8000/api/borrow-requests/?borrower=${username}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        setBorrowRequests(data);
+    const fetchMyBorrowRequests = async () => {
+      if (!isLoggedIn || !username) {
+        return;
       }
-    } catch (error) {
-      console.error('Failed to fetch borrow requests:', error);
-    }
-  };
 
-  fetchBorrowRequests();
-}, [isLoggedIn, username]);
+      try {
+        const response = await fetch(`http://localhost:8000/api/borrow-requests/?borrower=${username}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          setBorrowRequests(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch my borrow requests:', error);
+      }
+    };
+
+    const fetchReceivedBorrowRequests = async () => {
+      if (!isLoggedIn || !username) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`http://localhost:8000/api/borrow-requests/?owner=${username}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          setReceivedBorrowRequests(data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch received borrow requests:', error);
+      }
+    };
+
+    fetchMyBorrowRequests();
+    fetchReceivedBorrowRequests();
+  }, [isLoggedIn, username]);
 
 
     
@@ -250,9 +297,23 @@ const handleExchangeRequest = (book) => {
            setSelectedExchangeBook={setSelectedExchangeBook}
             />}
 
-        {view === 'dashboard' && <DashboardPage borrowedBooks={borrowedBooks} borrowRequests={borrowRequests} exchangeRequests={exchangeRequests} />}
+        {view === 'dashboard' && (
+          <DashboardPage
+            borrowedBooks={borrowedBooks}
+            borrowRequests={borrowRequests}
+            receivedBorrowRequests={receivedBorrowRequests}
+            exchangeRequests={exchangeRequests}
+            onUndoBorrowRequest={handleUndoBorrowRequest}
+          />
+        )}
 
-        {view === 'notifications' && <NotificationsPage borrowRequests={borrowRequests} exchangeRequests={exchangeRequests} />}
+        {view === 'notifications' && (
+          <NotificationsPage
+            borrowRequests={borrowRequests}
+            receivedBorrowRequests={receivedBorrowRequests}
+            onUndoBorrowRequest={handleUndoBorrowRequest}
+          />
+        )}
 
         {view === 'profile' && (
           <ProfilePage

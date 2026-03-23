@@ -85,12 +85,28 @@ def create_borrow_request(request):
 @api_view(['GET'])
 def get_borrow_requests(request):
     borrower = request.GET.get('borrower')
-    if not borrower:
-        return Response({"error": "Borrower is required!"}, status=400)
-    
-    requests = BorrowRequest.objects.filter(borrower=borrower)
+    owner = request.GET.get('owner')
+
+    if borrower:
+        requests = BorrowRequest.objects.filter(borrower=borrower)
+    elif owner:
+        requests = BorrowRequest.objects.filter(book__owner=owner)
+    else:
+        return Response({"error": "Borrower or owner is required!"}, status=400)
+
     serializer = BorrowRequestSerializer(requests, many=True)
     return Response(serializer.data, status=200)
+
+
+@api_view(['DELETE'])
+def delete_borrow_request(request, request_id):
+    try:
+        borrow_request = BorrowRequest.objects.get(id=request_id)
+    except BorrowRequest.DoesNotExist:
+        return Response({"error": "Borrow request not found!"}, status=404)
+
+    borrow_request.delete()
+    return Response({"message": "Borrow request removed."}, status=200)
 
 
 
