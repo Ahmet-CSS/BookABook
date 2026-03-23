@@ -171,7 +171,6 @@ export default function App() {
       }
 
       setBorrowRequests((prev) => [...prev, data]);
-      setReceivedBorrowRequests((prev) => [...prev, data]);
       alert('Borrow request sent successfully!');
     } catch (error) {
       alert('Failed to connect to Django. Is the server running & CORS configured?');
@@ -198,29 +197,36 @@ export default function App() {
     }
   };
 
-const handleExchangeRequest = (book) => {
+  const handleExchangeRequest = async (book) => {
     const alreadyRequested = exchangeRequests.some(
       (request) => request.requestedBookTitle === book.title && request.owner === book.owner
     );
+
     if (alreadyRequested) {
       alert('You already requested this book for exchange.');
       return;
     }
+
     const myBooks = books.filter((b) => b.owner === username);
     if (myBooks.length === 0) {
       alert('You need to have at least one book listed to request an exchange.');
       return;
     }
 
-    
-    const newRequest = {
-      id: Date.now(),
-      requestedBookTitle: book.title,
-      owner: book.owner,
-      offeredBookTitle: myBooks[0].title, // For simplicity, we just offer the first book we have listed
-      status: 'Pending',
-    };
-    setExchangeRequests((prev) => [...prev, newRequest]);
+    try {
+      const newRequest = {
+        id: Date.now(),
+        requestedBookTitle: book.title,
+        owner: book.owner,
+        offeredBookTitle: myBooks[0].title,
+        status: 'Pending',
+      };
+
+      setExchangeRequests((prev) => [...prev, newRequest]);
+      alert('Exchange request sent successfully!');
+    } catch (error) {
+      alert('Failed to connect to Django. Is the server running & CORS configured?');
+    }
   };
 
 

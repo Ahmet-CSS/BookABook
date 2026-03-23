@@ -95,7 +95,7 @@ export default function NotificationsPage({
               'Borrowing a book',
               `You asked to borrow "${request.book_title || 'a book'}". Status: ${request.status || 'Pending'}`,
               `borrow-${request.id}`,
-              true,
+              request.status === 'pending',
               request.id
             )
           )}

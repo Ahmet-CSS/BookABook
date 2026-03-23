@@ -75,22 +75,24 @@ export default function DashboardPage({
               <div style={{ fontSize: '12px', color: theme.textMuted }}>
                 Status: {request.status}
               </div>
-              <button
-                style={{
-                  marginTop: '10px',
-                  background: 'transparent',
-                  border: `1px solid ${theme.border}`,
-                  borderRadius: '8px',
-                  color: theme.error,
-                  cursor: 'pointer',
-                  padding: '6px 10px',
-                  fontSize: '12px',
-                  fontWeight: 'bold',
-                }}
-                onClick={() => onUndoBorrowRequest(request.id)}
-              >
-                Undo Request
-              </button>
+              {request.status === 'pending' ? (
+                <button
+                  style={{
+                    marginTop: '10px',
+                    background: 'transparent',
+                    border: `1px solid ${theme.border}`,
+                    borderRadius: '8px',
+                    color: theme.error,
+                    cursor: 'pointer',
+                    padding: '6px 10px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                  }}
+                  onClick={() => onUndoBorrowRequest(request.id)}
+                >
+                  Undo Request
+                </button>
+              ) : null}
             </div>
           ))
         )}
