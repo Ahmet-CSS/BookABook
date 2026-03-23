@@ -77,8 +77,16 @@ export default function BrowsePage({ books, onBorrowRequest, borrowRequests = []
           {book.status === 'unavailable' && (
           <button
            style={{ ...styles.button, background: theme.error, marginTop: '10px' }}
-            onClick={() => onReserveRequest(book)}>
-             Reserve Book
+            onClick={() => onReserveRequest(book)}
+              disabled={reservations.some(
+                (reservation) => reservation.book === book.id && reservation.reserver === username
+              )}
+              >
+             {reservations.some(
+                (reservation) => reservation.book === book.id && reservation.reserver === username
+              )
+              ? 'Reserved'
+              : 'Reserve Book'}
             </button>
 )}
           </div>

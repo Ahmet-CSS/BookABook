@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, use } from 'react';
 import { styles } from './styles/styles';
 import { MOCK_BOOKS, MOCK_BORROWED } from './data/mock';
 import Navbar from './components/Navbar';
@@ -22,6 +22,7 @@ export default function App() {
   const [isExchangeModalOpen, setIsExchangeModalOpen] = useState(false);
   const [selectedBookForExchange, setSelectedBookForExchange] = useState(null);
   const [targetBook, setTargetBook] = useState(null); // the book user wants
+  const [reservations, setReservations] = useState([]); // new state for reservations
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
@@ -159,7 +160,8 @@ export default function App() {
     return;
   }
 
-  try {    const response = await fetch('http://localhost:8000/api/borrow/', {
+  try {
+    const response = await fetch('http://localhost:8000/api/borrow/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ book_id: book.id, borrower: username }),
@@ -174,7 +176,7 @@ export default function App() {
     alert('Borrow request sent successfully!');
   } catch (error) {
     alert('Failed to connect to Django. Is the server running & CORS configured?');
-  } 
+  }
 };
 
 const handleExchangeRequest = (book) => {
@@ -216,6 +218,23 @@ const handleExchangeRequest = (book) => {
   fetchBorrowRequests();
 }, [isLoggedIn, username]);
 
+useEffect(() => {
+  const fetchReservations = async () => {
+    if (!isLoggedIn || !username) return;
+    
+    try {
+      const response = await fetch(`http://localhost:8000/api/reservations/?reserver=${username}`);
+      const data = await response.json();
+          if (response.ok) {
+            setReservations(data);
+          }
+        } catch (error) {
+          console.error('Failed to fetch reservations:', error);
+        }
+      };
+      fetchReservations();
+    }, [isLoggedIn, username]);
+
 
 const handleReserveRequest = async (book) => {
   try {
@@ -233,9 +252,12 @@ const handleReserveRequest = async (book) => {
     if (!response.ok) {
       alert(data.error || 'Failed to reserve the book.');
       return;
+
     }
 
+    setReservations((prev) => [...prev, data]);
     alert('Book reserved successfully!');
+
   } catch (error) {
     alert('Failed to connect to backend.');
   }
@@ -273,6 +295,7 @@ const handleReserveRequest = async (book) => {
            selectedExchangeBook={selectedExchangeBook}
            setSelectedExchangeBook={setSelectedExchangeBook}
            onReserveRequest={handleReserveRequest}
+           reservations={reservations}
           
             />}
 
