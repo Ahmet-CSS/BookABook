@@ -4,7 +4,7 @@ import { styles } from '../styles/styles';
 import { theme } from '../styles/theme';
 
 export default function BrowsePage({ books, onBorrowRequest, borrowRequests = [], username,  onExchangeRequest, exchangeRequests = [], 
-  myBooks = [], selectedExchangeBook, setSelectedExchangeBook}) {
+  myBooks = [], selectedExchangeBook, setSelectedExchangeBook, onReserveRequest, reservations = [] }) {
   return (
     <div>
       <h2 style={{ fontSize: '32px', fontWeight: '900', marginBottom: '30px' }}>LIBRARY CATALOG</h2>
@@ -58,6 +58,8 @@ export default function BrowsePage({ books, onBorrowRequest, borrowRequests = []
           ? 'Requested'
           : 'Request Borrow'}</button>
 
+
+
           <button
           style={{ ...styles.button, background: theme.secondary, marginTop: '10px' }}
           onClick={() => onExchangeRequest(book)}
@@ -71,6 +73,14 @@ export default function BrowsePage({ books, onBorrowRequest, borrowRequests = []
               ? 'Exchange Requested'
               : 'Request Exchange'}
           </button>
+
+          {book.status === 'unavailable' && (
+          <button
+           style={{ ...styles.button, background: theme.error, marginTop: '10px' }}
+            onClick={() => onReserveRequest(book)}>
+             Reserve Book
+            </button>
+)}
           </div>
         ))}
       </div>

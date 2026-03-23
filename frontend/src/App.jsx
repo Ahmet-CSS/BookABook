@@ -217,6 +217,30 @@ const handleExchangeRequest = (book) => {
 }, [isLoggedIn, username]);
 
 
+const handleReserveRequest = async (book) => {
+  try {
+    const response = await fetch('http://localhost:8000/api/reserve/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        book_id: book.id,
+        reserver: username,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.error || 'Failed to reserve the book.');
+      return;
+    }
+
+    alert('Book reserved successfully!');
+  } catch (error) {
+    alert('Failed to connect to backend.');
+  }
+};
+
     
 
   if (!isLoggedIn) {
@@ -248,6 +272,8 @@ const handleExchangeRequest = (book) => {
            myBooks={books.filter((b) => b.owner === username)}
            selectedExchangeBook={selectedExchangeBook}
            setSelectedExchangeBook={setSelectedExchangeBook}
+           onReserveRequest={handleReserveRequest}
+          
             />}
 
         {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} borrowRequests={borrowRequests} exchangeRequests={exchangeRequests} />}
