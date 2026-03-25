@@ -8,6 +8,8 @@ import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import { theme } from './styles/theme';
 
+
+
 export default function App() {
   const [view, setView] = useState('browse');
   const [search, setSearch] = useState('');
@@ -299,7 +301,8 @@ const handleReserveRequest = async (book) => {
           
             />}
 
-        {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} borrowRequests={borrowRequests} exchangeRequests={exchangeRequests} />}
+        {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} borrowRequests={borrowRequests} exchangeRequests={exchangeRequests}
+        reservations={reservations} />}
 
         {view === 'profile' && (
           <ProfilePage
