@@ -26,6 +26,7 @@ export default function Navbar({ view, setView, search, setSearch, onLogout }) {
         <button style={styles.navBtn(view === 'browse')} onClick={() => setView('browse')}>Discover</button>
         <button style={styles.navBtn(view === 'dashboard')} onClick={() => setView('dashboard')}>Dashboard</button>
         <button style={styles.navBtn(view === 'profile')} onClick={() => setView('profile')}>Profile</button>
+        <button style={styles.navBtn(view === 'rank' )} onClick={() => setView('rank')}>Rank</button>
 
         <div style={{ width: '1px', height: '20px', backgroundColor: theme.border, margin: '0 10px' }}></div>
         <button style={styles.logoutBtn} onClick={onLogout} title="logout">
