@@ -265,6 +265,26 @@ const handleReserveRequest = async (book) => {
   }
 };
 
+const handleCancelReservation = async (reservationId) => {
+  try {
+    const response = await fetch(`http://localhost:8000/api/reservation/${reservationId}/cancel/`, {
+      method: 'DELETE',
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.error || 'Failed to cancel reservation.');
+      return;
+    }
+
+    setReservations((prev) => prev.filter((reservation) => reservation.id !== reservationId));
+    alert('Reservation cancelled.');
+  } catch (error) {
+    alert('Failed to connect to backend.');
+  }
+};
+
     
 
   if (!isLoggedIn) {
@@ -297,6 +317,7 @@ const handleReserveRequest = async (book) => {
            selectedExchangeBook={selectedExchangeBook}
            setSelectedExchangeBook={setSelectedExchangeBook}
            onReserveRequest={handleReserveRequest}
+           onCancelReservation={handleCancelReservation}
            reservations={reservations}
           
             />}

@@ -149,7 +149,62 @@ def get_reservations(request):
     serializer = ReservationSerializer(reservations, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
-    
+# view to cancel a reservation
+@api_view(['DELETE'])
+def cancel_reservation(request, reservation_id):
+    try:
+        reservation = Reservation.objects.get(id=reservation_id)
+    except Reservation.DoesNotExist:
+        return Response(
+            {'error': 'Reservation not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if reservation.status != 'pending':
+        return Response(
+            {'error': 'Only pending reservations can be canceled'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    reservation.delete()
+    return Response(
+        {'message': 'Reservation canceled successfully'},
+        status=status.HTTP_200_OK
+    )
+
+# notify the user if book is available after reservation
+@api_view(['PATCH'])
+def update_book_status(request, book_id):
+    try:
+        book = Book.objects.get(id=book_id)
+    except Book.DoesNotExist:
+        return Response(
+            {'error': 'Book not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    new_status = request.data.get('status')
+    if not new_status:
+        return Response(
+            {'error': 'Status is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    book.status = new_status
+    book.save()
+
+    if book.status == 'available':
+        Reservation.objects.filter(book=book, status='pending').update(status='ready')
+
+    return Response(
+        {
+            'message': 'Book status updated successfully',
+            'book_status': book.status
+        },
+        status=status.HTTP_200_OK
+    )
+
+
 @csrf_exempt
 def create_exchange_request(request):
     if request.method != 'POST':
