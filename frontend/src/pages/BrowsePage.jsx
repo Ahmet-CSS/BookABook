@@ -1,15 +1,57 @@
-import React from 'react';
-import { Star, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { Star, Filter, Check } from 'lucide-react';
 import { styles } from '../styles/styles';
 import { theme } from '../styles/theme';
 
 export default function BrowsePage({ books, onBorrowRequest, borrowRequests = [], username,  onExchangeRequest, exchangeRequests = [], 
   myBooks = [], selectedExchangeBook, setSelectedExchangeBook}) {
+
+  const [activeGenre, setActiveGenre] = useState('All');
+
+  const genres = ['All', ...new Set(books.map(book => book.genre))];
+
+  const displayedBooks = books.filter(book => 
+    activeGenre === 'All' ? true : book.genre === activeGenre
+  );
+
   return (
     <div>
       <h2 style={{ fontSize: '32px', fontWeight: '900', marginBottom: '30px' }}>LIBRARY CATALOG</h2>
+
+      <div style={{ 
+        display: 'flex', 
+        gap: '10px', 
+        marginBottom: '30px', 
+        flexWrap: 'wrap', 
+        alignItems: 'center',
+        padding: '10px 0'
+      }}>
+        {genres.map(genre => (
+          <button
+            key={genre}
+            onClick={() => setActiveGenre(genre)}
+            style={{  
+              padding: '8px 16px',
+              borderRadius: '20px',
+              border: `1px solid ${activeGenre === genre ? theme.primary : theme.border}`,
+              background: activeGenre === genre ? theme.primary : theme.cardBg,
+              color: activeGenre === genre ? 'white' : theme.textMuted,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px'
+            }}
+            >
+            {activeGenre === genre && <Check size={14} />}
+            {genre}
+          </button>
+        ))}
+      </div>
+
       <div style={styles.grid}>
-        {books.map((book) => (
+        {displayedBooks.map((book) => (
           <div key={book.id} style={styles.card}>
             <div style={styles.badge}>{book.genre}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '5px' }}>
@@ -73,6 +115,13 @@ export default function BrowsePage({ books, onBorrowRequest, borrowRequests = []
           </button>
           </div>
         ))}
+
+        {displayedBooks.length === 0 && (
+          <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '50px', background: theme.cardBg, borderRadius: '24px', border: `1px dashed ${theme.border}`, color: theme.textMuted }}>
+            No books found for "{activeGenre}".
+          </div>
+        )}
+        
       </div>
     </div>
   );
