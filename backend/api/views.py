@@ -1,4 +1,6 @@
 import json
+from django.db.models import Avg
+from .models import BookRating
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.models import User
@@ -204,3 +206,28 @@ def reject_exchange_request(request, request_id):
         return JsonResponse({'message': 'Exchange request rejected'})
     except ExchangeRequest.DoesNotExist:
         return JsonResponse({'error': 'Exchange request not found'}, status=404)
+
+@api_view(['POST'])
+def rate_book(request, book_id):
+    try:
+        book = Book.objects.get(id=book_id)
+    except Book.DoesNotExist:
+        return Response({"error": "Book not found"}, status=404)
+
+    username = request.data.get('username')
+    score = request.data.get('rating')
+
+    if not username or score is None:
+        return Response({"error": "Username and rating are required"}, status=400)
+
+    BookRating.objects.update_or_create(
+        book=book, 
+        username=username,
+        defaults={'score': int(score)}
+    )
+
+    new_avg = book.ratings.aggregate(Avg('score'))['score__avg']
+    book.rating = round(new_avg, 1)
+    book.save()
+
+    return Response({'new_average_rating': book.rating})

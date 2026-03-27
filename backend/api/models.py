@@ -30,3 +30,14 @@ class ExchangeRequest(models.Model):
 
     def __str__(self):
         return f"{self.requester} wants to exchange {self.book.title} for {self.offered_book_title}"
+
+class BookRating(models.Model):
+    book = models.ForeignKey(Book, on_delete=models.CASCADE, related_name='ratings')
+    username = models.CharField(max_length=100)
+    score = models.IntegerField()
+
+    class Meta:
+        unique_together = ('book', 'username')
+
+    def __str__(self):
+        return f"{self.username} rated {self.book.title} - {self.score} stars"
