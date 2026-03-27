@@ -6,6 +6,7 @@ import LoginPage from './pages/LoginPage';
 import BrowsePage from './pages/BrowsePage';
 import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
+import RankPage from './pages/RankPage';
 import { theme } from './styles/theme';
 
 export default function App() {
@@ -271,6 +272,8 @@ const handleExchangeRequest = (book) => {
             onAddBook={handleAddBook}
           />
         )}
+
+        {view === 'rank' && <RankPage books={books} />}
         
 {/* popup for exchange request*/}
       </div>
