@@ -41,3 +41,12 @@ class BookRating(models.Model):
 
     def __str__(self):
         return f"{self.username} rated {self.book.title} - {self.score} stars"
+
+
+class Reservation(models.Model):
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    reserver = models.CharField(max_length=100)
+    status = models.CharField(max_length=30, default='pending')  # active, completed, cancelled
+
+    def __str__(self):
+        return f"{self.reserver} reserved {self.book.title}"
