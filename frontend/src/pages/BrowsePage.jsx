@@ -21,7 +21,7 @@ export default function BrowsePage({ books, onBorrowRequest, borrowRequests = []
       <div style={{ 
         display: 'flex', 
         gap: '10px', 
-        marginBottom: '30px', 
+        marginBottom: '30pex',
         flexWrap: 'wrap', 
         alignItems: 'center',
         padding: '10px 0'
