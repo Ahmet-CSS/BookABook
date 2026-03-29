@@ -1,10 +1,19 @@
 import React, { useState } from 'react';
-import { Star, Filter, Check } from 'lucide-react';
+import { Star, Check } from 'lucide-react';
 import { styles } from '../styles/styles';
 import { theme } from '../styles/theme';
 
-export default function BrowsePage({ books, onBorrowRequest, borrowRequests = [], username,  onExchangeRequest, exchangeRequests = [], 
-  myBooks = [], selectedExchangeBook, setSelectedExchangeBook}) {
+export default function BrowsePage({
+  books,
+  onBorrowRequest,
+  borrowRequests = [],
+  username,
+  onExchangeRequest,
+  exchangeRequests = [],
+  onReserveRequest,
+  onCancelReservation,
+  reservations = [],
+}) {
 
   const [activeGenre, setActiveGenre] = useState('All');
 
@@ -21,7 +30,7 @@ export default function BrowsePage({ books, onBorrowRequest, borrowRequests = []
       <div style={{ 
         display: 'flex', 
         gap: '10px', 
-        marginBottom: '30pex',
+        marginBottom: '30px',
         flexWrap: 'wrap', 
         alignItems: 'center',
         padding: '10px 0'
@@ -113,6 +122,26 @@ export default function BrowsePage({ books, onBorrowRequest, borrowRequests = []
               ? 'Exchange Requested'
               : 'Request Exchange'}
           </button>
+
+          {book.status === 'unavailable' && (() => {
+            const existingReservation = reservations.find(
+              (reservation) => reservation.book === book.id && reservation.reserver === username
+            );
+            return (
+              <button
+                style={{ ...styles.button, background: theme.error, marginTop: '10px' }}
+                onClick={() => {
+                  if (existingReservation) {
+                    onCancelReservation(existingReservation.id);
+                  } else {
+                    onReserveRequest(book);
+                  }
+                }}
+              >
+                {existingReservation ? 'Cancel Reservation' : 'Reserve'}
+              </button>
+            );
+          })()}
           </div>
         ))}
 

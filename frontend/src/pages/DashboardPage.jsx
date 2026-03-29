@@ -2,7 +2,7 @@ import React from 'react';
 import { Book, User, Clock } from 'lucide-react';
 import { theme } from '../styles/theme';
 
-export default function DashboardPage({ borrowedBooks, borrowRequests = [], exchangeRequests = [] }) {
+export default function DashboardPage({ borrowedBooks, borrowRequests = [], exchangeRequests = [], reservations = [] }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
       <div style={{ background: theme.cardBg, padding: '30px', borderRadius: '24px', border: `1px solid ${theme.border}` }}>
@@ -27,6 +27,50 @@ export default function DashboardPage({ borrowedBooks, borrowRequests = [], exch
           </div>
         ))}
       </div>
+
+
+
+      {/* Placeholder for Reservations */}
+      <div style={{ background: theme.cardBg, padding: '30px', borderRadius: '24px', border: `1px solid ${theme.border}` }}>
+        <h3
+          style={{
+            fontSize: '20px',
+            fontWeight: 'bold',
+            borderBottom: `1px solid ${theme.border}`,
+            paddingBottom: '15px',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}
+        >
+          <Book size={20} /> My Reservations
+        </h3>
+      {reservations.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: theme.textMuted }}>
+          <Clock size={32} style={{ marginBottom: '10px', opacity: 0.3 }} />
+          <div>No active reservations...</div>
+        </div>
+      ) : (
+        reservations.map((reservation) => (
+              <div
+                key={reservation.id}
+                style={{
+                  padding: '15px',
+                  background: theme.bg,
+                  borderRadius: '15px',
+                  borderLeft: `4px solid ${theme.primary}`,
+                  marginBottom: '10px',
+                }}
+              >
+                <div style={{ fontWeight: 'bold' }}>{reservation.book_title}</div>
+                <div style={{ fontSize: '12px', color: theme.textMuted }}>
+                  Status: {reservation.status}
+                </div>
+              </div>
+            ))
+          )}  
+        </div>
 
       {/* Placeholder for Borrowing Requests */}
       <div style={{ background: theme.cardBg, padding: '30px', borderRadius: '24px', border: `1px solid ${theme.border}` }}>

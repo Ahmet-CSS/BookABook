@@ -7,8 +7,8 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework import status
 
-from .models import Book, BorrowRequest
-from .serializers import BookSerializer, BorrowRequestSerializer
+from .models import Book, BorrowRequest, Reservation
+from .serializers import BookSerializer, BorrowRequestSerializer, ReservationSerializer
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -94,9 +94,119 @@ def get_borrow_requests(request):
     serializer = BorrowRequestSerializer(requests, many=True)
     return Response(serializer.data, status=200)
 
+# views for reservation and exchange requests
+@api_view(['POST'])
+def create_reservation(request):
+    book_id = request.data.get('book_id')
+    reserver = request.data.get('reserver')
+
+    if not book_id or not reserver:
+        return Response(
+            {'error': 'book_id and reserver are required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    try:
+        book = Book.objects.get(id=book_id)
+    except Book.DoesNotExist:
+        return Response(
+            {'error': 'Book not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if book.status != 'unavailable':
+        return Response(
+            {'error': 'Only unavailable books can be reserved'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    existing_reservation = Reservation.objects.filter(book=book, reserver=reserver).first()
+    if existing_reservation:
+        return Response(
+            {'error': 'You already reserved this book'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    reservation = Reservation.objects.create(
+        book=book,
+        reserver=reserver,
+        status='pending'
+    )
+
+    serializer = ReservationSerializer(reservation)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-    
+# view to get reservations for a user
+@api_view(['GET'])
+def get_reservations(request):
+    reserver = request.GET.get('reserver')
+    if not reserver:
+        return Response(
+            {'error': 'reserver is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    reservations = Reservation.objects.filter(reserver=reserver)
+    serializer = ReservationSerializer(reservations, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+# view to cancel a reservation
+@api_view(['DELETE'])
+def cancel_reservation(request, reservation_id):
+    try:
+        reservation = Reservation.objects.get(id=reservation_id)
+    except Reservation.DoesNotExist:
+        return Response(
+            {'error': 'Reservation not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    if reservation.status != 'pending':
+        return Response(
+            {'error': 'Only pending reservations can be canceled'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    reservation.delete()
+    return Response(
+        {'message': 'Reservation canceled successfully'},
+        status=status.HTTP_200_OK
+    )
+
+# notify the user if book is available after reservation
+@api_view(['PATCH'])
+def update_book_status(request, book_id):
+    try:
+        book = Book.objects.get(id=book_id)
+    except Book.DoesNotExist:
+        return Response(
+            {'error': 'Book not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    new_status = request.data.get('status')
+    if not new_status:
+        return Response(
+            {'error': 'Status is required'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    book.status = new_status
+    book.save()
+
+    if book.status == 'available':
+        Reservation.objects.filter(book=book, status='pending').update(status='ready')
+
+    return Response(
+        {
+            'message': 'Book status updated successfully',
+            'book_status': book.status
+        },
+        status=status.HTTP_200_OK
+    )
+
+
 @csrf_exempt
 def create_exchange_request(request):
     if request.method != 'POST':
