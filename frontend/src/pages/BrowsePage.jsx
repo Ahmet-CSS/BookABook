@@ -4,7 +4,7 @@ import { styles } from '../styles/styles';
 import { theme } from '../styles/theme';
 
 export default function BrowsePage({ books, onBorrowRequest, borrowRequests = [], username,  onExchangeRequest, exchangeRequests = [], 
-  myBooks = [], selectedExchangeBook, setSelectedExchangeBook}) {
+  myBooks = [], selectedExchangeBook, setSelectedExchangeBook, onReserveRequest, onCancelReservation, reservations = [] }) {
   return (
     <div>
       <h2 style={{ fontSize: '32px', fontWeight: '900', marginBottom: '30px' }}>LIBRARY CATALOG</h2>
@@ -58,6 +58,8 @@ export default function BrowsePage({ books, onBorrowRequest, borrowRequests = []
           ? 'Requested'
           : 'Request Borrow'}</button>
 
+
+
           <button
           style={{ ...styles.button, background: theme.secondary, marginTop: '10px' }}
           onClick={() => onExchangeRequest(book)}
@@ -71,6 +73,27 @@ export default function BrowsePage({ books, onBorrowRequest, borrowRequests = []
               ? 'Exchange Requested'
               : 'Request Exchange'}
           </button>
+
+          {book.status === 'unavailable' && (() => {
+            const existingReservation = reservations.find(
+              (reservation) => reservation.book === book.id && reservation.reserver === username
+            );
+            return (
+              <button
+           style={{ ...styles.button, background: theme.error, marginTop: '10px' }}
+            onClick={() => {
+              if (existingReservation) {
+                onCancelReservation(existingReservation.id);
+              } else {
+                onReserveRequest(book);
+              }
+            }}
+            >
+            {existingReservation ? 'Cancel Reservation' : 'Reserve'}
+            </button>
+          );
+  })()}
+
           </div>
         ))}
       </div>
