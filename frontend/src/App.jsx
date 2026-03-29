@@ -1,6 +1,5 @@
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect } from 'react';
 import { styles } from './styles/styles';
-import { MOCK_BOOKS, MOCK_BORROWED } from './data/mock';
 import Navbar from './components/Navbar';
 import LoginPage from './pages/LoginPage';
 import BrowsePage from './pages/BrowsePage';
@@ -9,13 +8,12 @@ import ProfilePage from './pages/ProfilePage';
 import RankPage from './pages/RankPage';
 import { theme } from './styles/theme';
 
-
-
 export default function App() {
   const [view, setView] = useState('browse');
   const [search, setSearch] = useState('');
-  const [books, setBooks] = useState(MOCK_BOOKS);
-  const [borrowedBooks] = useState(MOCK_BORROWED);
+  const [ratedBooks, setRatedBooks] = useState({});
+  const [books, setBooks] = useState([]);
+  const [borrowedBooks] = useState([]);
 
   const [borrowRequests, setBorrowRequests] = useState([]);
   const [exchangeRequests, setExchangeRequests] = useState([]);
@@ -25,7 +23,6 @@ export default function App() {
   const [isExchangeModalOpen, setIsExchangeModalOpen] = useState(false);
   const [selectedBookForExchange, setSelectedBookForExchange] = useState(null);
   const [targetBook, setTargetBook] = useState(null); // the book user wants
-  const [reservations, setReservations] = useState([]); // new state for reservations
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
@@ -153,6 +150,47 @@ export default function App() {
     }
   };
 
+const handleRateBook = async (bookId, bookTitle, userRating) => {
+  try {
+    const response = await fetch(`http://localhost:8000/api/books/${bookId}/rate/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        rating: userRating,
+        username: username 
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+
+    const data = await response.json();
+    const newAverageRating = data.new_average_rating;
+
+
+    setBooks(prevBooks => prevBooks.map(book => {
+      if (book.id === bookId) {
+        return { ...book, rating: newAverageRating };
+      }
+      return book;
+    }));
+
+    setRatedBooks(prev => ({ ...prev, [bookTitle]: userRating }));
+    alert(`Success! Rated ${userRating} stars. New average is ${newAverageRating}`);
+
+  } catch (error) {
+    console.error("Error rating book:", error);
+    alert("Failed to rate the book. Please try again.");
+  }
+};
+
+
+
+
+
   const handleBorrowRequest = async (book) => {
   const alreadyRequested = borrowRequests.some(
     (request) => request.book === book.id && request.borrower === username
@@ -163,8 +201,7 @@ export default function App() {
     return;
   }
 
-  try {
-    const response = await fetch('http://localhost:8000/api/borrow/', {
+  try {    const response = await fetch('http://localhost:8000/api/borrow/', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ book_id: book.id, borrower: username }),
@@ -179,7 +216,7 @@ export default function App() {
     alert('Borrow request sent successfully!');
   } catch (error) {
     alert('Failed to connect to Django. Is the server running & CORS configured?');
-  }
+  } 
 };
 
 const handleExchangeRequest = (book) => {
@@ -221,70 +258,6 @@ const handleExchangeRequest = (book) => {
   fetchBorrowRequests();
 }, [isLoggedIn, username]);
 
-useEffect(() => {
-  const fetchReservations = async () => {
-    if (!isLoggedIn || !username) return;
-    
-    try {
-      const response = await fetch(`http://localhost:8000/api/reservations/?reserver=${username}`);
-      const data = await response.json();
-          if (response.ok) {
-            setReservations(data);
-          }
-        } catch (error) {
-          console.error('Failed to fetch reservations:', error);
-        }
-      };
-      fetchReservations();
-    }, [isLoggedIn, username]);
-
-
-const handleReserveRequest = async (book) => {
-  try {
-    const response = await fetch('http://localhost:8000/api/reserve/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        book_id: book.id,
-        reserver: username,
-      }),
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      alert(data.error || 'Failed to reserve the book.');
-      return;
-
-    }
-
-    setReservations((prev) => [...prev, data]);
-    alert('Book reserved successfully!');
-
-  } catch (error) {
-    alert('Failed to connect to backend.');
-  }
-};
-
-const handleCancelReservation = async (reservationId) => {
-  try {
-    const response = await fetch(`http://localhost:8000/api/reservation/${reservationId}/cancel/`, {
-      method: 'DELETE',
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      alert(data.error || 'Failed to cancel reservation.');
-      return;
-    }
-
-    setReservations((prev) => prev.filter((reservation) => reservation.id !== reservationId));
-    alert('Reservation cancelled.');
-  } catch (error) {
-    alert('Failed to connect to backend.');
-  }
-};
 
     
 
@@ -317,14 +290,9 @@ const handleCancelReservation = async (reservationId) => {
            myBooks={books.filter((b) => b.owner === username)}
            selectedExchangeBook={selectedExchangeBook}
            setSelectedExchangeBook={setSelectedExchangeBook}
-           onReserveRequest={handleReserveRequest}
-           onCancelReservation={handleCancelReservation}
-           reservations={reservations}
-          
             />}
 
-        {view === 'dashboard' && <DashboardPage borrowedBooks={MOCK_BORROWED} borrowRequests={borrowRequests} exchangeRequests={exchangeRequests}
-        reservations={reservations} />}
+        {view === 'dashboard' && <DashboardPage borrowedBooks={borrowedBooks} borrowRequests={borrowRequests} exchangeRequests={exchangeRequests} />}
 
         {view === 'profile' && (
           <ProfilePage
@@ -332,7 +300,6 @@ const handleCancelReservation = async (reservationId) => {
             booksListed={listedBooks.length}
             booksBorrowed={borrowedBooks.length}
             listedBooks={listedBooks}
-            borrowedBooks={borrowedBooks}
             newBookTitle={newBookTitle}
             setNewBookTitle={setNewBookTitle}
             newBookAuthor={newBookAuthor}
@@ -343,6 +310,8 @@ const handleCancelReservation = async (reservationId) => {
             setNewBookIsbn={setNewBookIsbn}
             addBookMessage={addBookMessage}
             onAddBook={handleAddBook}
+            borrowedBooks={borrowedBooks} 
+            onRateBook={handleRateBook}
           />
         )}
 
