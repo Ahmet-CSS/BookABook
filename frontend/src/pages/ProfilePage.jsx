@@ -1,5 +1,5 @@
 import React from 'react';
-import { User } from 'lucide-react';
+import { User, X } from 'lucide-react';
 import { styles } from '../styles/styles';
 import { theme } from '../styles/theme';
 
@@ -19,6 +19,7 @@ export default function ProfilePage({
   setNewBookIsbn,
   addBookMessage,
   onAddBook,
+  onDeleteBook,
 }) {
   return (
     <div style={{ background: theme.cardBg, padding: '30px', borderRadius: '24px', border: `1px solid ${theme.border}` }}>
@@ -57,8 +58,31 @@ export default function ProfilePage({
                     border: `1px solid ${theme.border}`,
                     borderRadius: '12px',
                     padding: '12px',
+                    position: 'relative',
                   }}
                 >
+                  <button
+                    type="button"
+                    aria-label={`Delete ${book.title}`}
+                    onClick={() => onDeleteBook(book.id)}
+                    style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '999px',
+                      border: `1px solid ${theme.border}`,
+                      background: theme.cardBg,
+                      color: theme.error,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
                   <div style={{ fontWeight: 'bold' }}>{book.title}</div>
                   <div style={{ fontSize: '13px', color: theme.textMuted }}>
                     by {book.author} | {book.genre} | ISBN: {book.isbn}

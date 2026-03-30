@@ -147,6 +147,27 @@ export default function App() {
     }
   };
 
+  const handleDeleteBook = async (bookId) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/books/${bookId}/`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error || 'Failed to delete the book.');
+        return;
+      }
+
+      setBooks((prev) => prev.filter((book) => book.id !== bookId));
+      setAddBookMessage('Book deleted successfully.');
+    } catch {
+      alert('Could not reach backend. Please ensure Django is running.');
+    }
+  };
+
   const handleBorrowRequest = async (book) => {
     const alreadyRequested = borrowRequests.some(
       (request) => request.book === book.id && request.borrower === username
@@ -338,6 +359,7 @@ export default function App() {
             setNewBookIsbn={setNewBookIsbn}
             addBookMessage={addBookMessage}
             onAddBook={handleAddBook}
+            onDeleteBook={handleDeleteBook}
           />
         )}
       </div>
