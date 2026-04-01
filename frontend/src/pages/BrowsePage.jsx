@@ -125,7 +125,7 @@ export default function BrowsePage({
 
           {book.status === 'unavailable' && (() => {
             const existingReservation = reservations.find(
-              (reservation) => reservation.book === book.id && reservation.reserver === username
+              (reservation) => reservation.book === book.id && reservation.reserver === username && reservation.status === 'pending'
             );
             return (
               <button
