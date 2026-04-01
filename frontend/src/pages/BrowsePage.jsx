@@ -129,19 +129,22 @@ export default function BrowsePage({
             );
             return (
               <button
-                style={{ ...styles.button, background: theme.error, marginTop: '10px' }}
-                onClick={() => {
-                  if (existingReservation) {
-                    onCancelReservation(existingReservation.id);
-                  } else {
-                    onReserveRequest(book);
-                  }
-                }}
-              >
-                {existingReservation ? 'Cancel Reservation' : 'Reserve'}
-              </button>
-            );
-          })()}
+           style={{ ...styles.button, background: theme.error, marginTop: '10px' }}
+            onClick={() => {
+              if (existingReservation) {
+                onCancelReservation(existingReservation.id);
+              } else {
+                onReserveRequest(book);
+              }
+            }}
+            >
+            {existingReservation ? 'Cancel Reservation' : 'Reserve'}
+            </button>
+          );
+  })()}
+   
+
+
           </div>
         ))}
 
