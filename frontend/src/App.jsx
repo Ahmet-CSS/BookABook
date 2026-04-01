@@ -262,29 +262,27 @@ const handleExchangeRequest = (book) => {
 
 
 
-useEffect(() => {
-  const fetchReservations = async () => {
-    if (!isLoggedIn || !username) return;
+const fetchReservations = async () => {
+  if (!isLoggedIn || !username) return;
 
-    try {
-      const response = await fetch(
-        `http://localhost:8000/api/reservations/?reserver=${username}`
-      );
-      const data = await response.json();
+  try {
+    const response = await fetch(
+      `http://localhost:8000/api/reservations/?reserver=${username}`
+    );
+    const data = await response.json();
 
-      if (response.ok) {
-        setReservations(data);
-      }
-    } catch (error) {
-      console.error('Failed to fetch reservations:', error);
+    if (response.ok) {
+      setReservations(data);
     }
-  };
+  } catch (error) {
+    console.error('Failed to fetch reservations:', error);
+  }
+};
 
+
+useEffect(() => {
   fetchReservations();
-
-
 }, [isLoggedIn, username]);
-
 
 const handleReserveRequest = async (book) => {
   try {
@@ -304,14 +302,12 @@ const handleReserveRequest = async (book) => {
       return;
     }
 
-    setReservations((prev) => [...prev, data]);
+    await fetchReservations();
     alert('Book reserved successfully!');
   } catch (error) {
     alert('Failed to connect to backend.');
   }
 };
-
-
 
 const handleCancelReservation = async (reservationId) => {
   try {
@@ -329,9 +325,7 @@ const handleCancelReservation = async (reservationId) => {
       return;
     }
 
-    setReservations((prev) =>
-      prev.filter((reservation) => reservation.id !== reservationId)
-    );
+    await fetchReservations();
     alert('Reservation cancelled.');
   } catch (error) {
     alert('Failed to connect to backend.');
