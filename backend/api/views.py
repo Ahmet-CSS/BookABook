@@ -207,6 +207,8 @@ def update_book_status(request, book_id):
     )
 
 
+
+
 @csrf_exempt
 def create_exchange_request(request):
     if request.method != 'POST':

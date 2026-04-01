@@ -19,7 +19,7 @@ export default function LoginPage({
       <div style={styles.loginBox}>
         <div style={{ ...styles.logo, justifyContent: 'center', marginBottom: '10px' }}>
           <Sparkles size={32} />
-          <span>YORU SHARE</span>
+          <span>BOOKABOOK</span>
         </div>
 
         <div style={{ textAlign: 'center', color: theme.textMuted, marginBottom: '20px' }}>
