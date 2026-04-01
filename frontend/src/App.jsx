@@ -284,6 +284,8 @@ useEffect(() => {
   fetchReservations();
 }, [isLoggedIn, username]);
 
+
+
 const handleReserveRequest = async (book) => {
   try {
     const response = await fetch('http://localhost:8000/api/reserve/', {
@@ -302,12 +304,14 @@ const handleReserveRequest = async (book) => {
       return;
     }
 
-    await fetchReservations();
+    setReservations((prev) => [...prev, data]);
     alert('Book reserved successfully!');
   } catch (error) {
     alert('Failed to connect to backend.');
   }
 };
+
+
 
 const handleCancelReservation = async (reservationId) => {
   try {
@@ -325,13 +329,14 @@ const handleCancelReservation = async (reservationId) => {
       return;
     }
 
-    await fetchReservations();
+    setReservations((prev) =>
+      prev.filter((reservation) => reservation.id !== reservationId)
+    );
     alert('Reservation cancelled.');
   } catch (error) {
     alert('Failed to connect to backend.');
   }
 };
-
 
     
 

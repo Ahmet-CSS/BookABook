@@ -124,24 +124,43 @@ export default function BrowsePage({
           </button>
 
           {book.status === 'unavailable' && (() => {
-            const existingReservation = reservations.find(
-              (reservation) => reservation.book === book.id && reservation.reserver === username && reservation.status === 'pending'
-            );
-            return (
-              <button
-                style={{ ...styles.button, background: theme.error, marginTop: '10px' }}
-                onClick={() => {
-                  if (existingReservation) {
-                    onCancelReservation(existingReservation.id);
-                  } else {
-                    onReserveRequest(book);
-                  }
-                }}
-              >
-                {existingReservation ? 'Cancel Reservation' : 'Reserve'}
-              </button>
-            );
-          })()}
+  const existingReservation = reservations.find(
+    (reservation) =>
+      Number(reservation.book) === Number(book.id) &&
+      reservation.reserver === username
+  );
+
+  let buttonText = 'Reserve';
+  let buttonDisabled = false;
+  let buttonAction = () => onReserveRequest(book);
+
+  if (existingReservation) {
+    const status = String(existingReservation.status).toLowerCase();
+
+    if (status === 'pending') {
+      buttonText = 'Cancel Reservation';
+      buttonAction = () => onCancelReservation(existingReservation.id);
+    } else if (status === 'ready') {
+      buttonText = 'Ready for Pickup';
+      buttonDisabled = true;
+    } else {
+      buttonText = 'Reserved';
+      buttonDisabled = true;
+    }
+  }
+
+  return (
+    <button
+      style={{ ...styles.button, background: theme.error, marginTop: '10px' }}
+      onClick={buttonAction}
+      disabled={buttonDisabled}
+    >
+      {buttonText}
+    </button>
+  );
+})()}
+
+
           </div>
         ))}
 
