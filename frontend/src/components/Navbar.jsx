@@ -8,7 +8,7 @@ export default function Navbar({ view, setView, search, setSearch, onLogout }) {
     <nav style={styles.navbar}>
       <div style={styles.logo}>
         <Sparkles size={28} />
-        <span>YORU SHARE</span>
+        <span>BOOKABOOK</span>
       </div>
 
       <div style={styles.searchBox}>
