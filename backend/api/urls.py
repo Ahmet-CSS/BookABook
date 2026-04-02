@@ -17,4 +17,6 @@ urlpatterns = [
     path('reservations/', views.get_reservations, name='reservations'),
     path('reservation/<int:reservation_id>/cancel/', views.cancel_reservation, name='cancel-reservation'),
     path('books/<int:book_id>/status/', views.update_book_status, name='update-book-status'),
+    path('borrow-request/<int:request_id>/accept/', views.accept_borrow_request, name='accept-borrow-request'),
+    path('borrow-request/<int:request_id>/reject/', views.reject_borrow_request, name='reject-borrow-request'),
 ]

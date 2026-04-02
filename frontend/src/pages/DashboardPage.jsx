@@ -3,6 +3,17 @@ import { Book, User, Clock } from 'lucide-react';
 import { theme } from '../styles/theme';
 
 export default function DashboardPage({ borrowedBooks, borrowRequests = [], exchangeRequests = [], reservations = [] }) {
+  const acceptedBorrowRequests = borrowRequests.filter(
+    (req) => req.status === 'accepted'
+  );
+
+  const isDueSoon = (dueDate) => {
+    if (!dueDate) return false;
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diffDays = (due - now) / (1000 * 60 * 60 * 24);
+    return diffDays <= 3 && diffDays >= 0; // Highlight if due within 3 days
+  }
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
       <div style={{ background: theme.cardBg, padding: '30px', borderRadius: '24px', border: `1px solid ${theme.border}` }}>
@@ -20,13 +31,39 @@ export default function DashboardPage({ borrowedBooks, borrowRequests = [], exch
         >
           <Book size={20} /> Currently Borrowing
         </h3>
-        {borrowedBooks.map((item) => (
-          <div key={item.id} style={{ padding: '15px', background: theme.bg, borderRadius: '15px', borderLeft: `4px solid ${theme.secondary}` }}>
-            <div style={{ fontWeight: 'bold' }}>{item.title}</div>
-            <div style={{ fontSize: '12px', color: theme.textMuted, marginTop: '5px' }}>Due Date: {item.due}</div>
+        {acceptedBorrowRequests.length === 0 ? (
+          <div style={{ color: theme.textMuted }}>No borrowed books yet.</div>
+          ) : (   
+          acceptedBorrowRequests.map((request) => (
+            <div
+          key={request.id}
+           style={{
+            padding: '15px',
+            background: theme.bg,
+            borderRadius: '15px',
+            borderLeft: `4px solid ${theme.secondary}`,
+             marginBottom: '10px',
+            }}
+        >
+          <div style={{ fontWeight: 'bold' }}>{request.book_title}</div>
+
+          <div style={{ fontSize: '12px', color: theme.textMuted, marginTop: '5px' }}>
+            Return Deadline:{' '}
+            {request.due_date
+            ? new Date(request.due_date).toLocaleDateString()
+            : 'Not assigned'}
           </div>
-        ))}
-      </div>
+
+        {isDueSoon(request.due_date) && (
+            <div style={{ fontSize: '12px', color: 'orange', fontWeight: 'bold', marginTop: '8px' }}>
+              Reminder: this book is due within 3 days.
+          </div>
+          )}
+        </div>
+
+
+          ))        )}
+      </div>  
 
 
 
