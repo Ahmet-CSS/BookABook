@@ -108,7 +108,7 @@ def accept_borrow_request(request, request_id):
         return Response({"error": "Borrow request not found!"}, status=404)
 
     borrow_request.status = 'accepted'
-    borrow_request.due_date = timezone.now() + timedelta(days=14)
+    borrow_request.due_date = timezone.now().date() + timedelta(days=14)  # Set due date to 2 weeks from now
     borrow_request.save()
 
     borrow_request.book.status = 'unavailable'
