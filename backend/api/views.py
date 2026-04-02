@@ -7,12 +7,16 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from rest_framework import status
 
+
 from .models import Book, BorrowRequest, Reservation
 from .serializers import BookSerializer, BorrowRequestSerializer, ReservationSerializer
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Book, ExchangeRequest
+
+from django.utils import timezone
+from datetime import timedelta
 
 @api_view(['GET', 'POST'])
 def books_collection(request):
@@ -93,6 +97,41 @@ def get_borrow_requests(request):
     requests = BorrowRequest.objects.filter(borrower=borrower)
     serializer = BorrowRequestSerializer(requests, many=True)
     return Response(serializer.data, status=200)
+
+# view to accept a borrow request and set due date
+
+@api_view(['POST'])
+def accept_borrow_request(request, request_id):
+    try:
+        borrow_request = BorrowRequest.objects.get(id=request_id)
+    except BorrowRequest.DoesNotExist:
+        return Response({"error": "Borrow request not found!"}, status=404)
+
+    borrow_request.status = 'accepted'
+    borrow_request.due_date = timezone.now() + timedelta(days=14)
+    borrow_request.save()
+
+    borrow_request.book.status = 'unavailable'
+    borrow_request.book.save()
+
+    serializer = BorrowRequestSerializer(borrow_request)
+    return Response(serializer.data, status=200)
+
+# view to reject a borrow request
+
+@api_view(['POST'])
+def reject_borrow_request(request, request_id):
+    try:
+        borrow_request = BorrowRequest.objects.get(id=request_id)
+    except BorrowRequest.DoesNotExist:
+        return Response({"error": "Borrow request not found!"}, status=404)
+
+    borrow_request.status = 'rejected'
+    borrow_request.save()
+
+    serializer = BorrowRequestSerializer(borrow_request)
+    return Response(serializer.data, status=200)
+
 
 # views for reservation and exchange requests
 @api_view(['POST'])
