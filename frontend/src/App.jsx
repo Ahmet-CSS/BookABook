@@ -4,6 +4,7 @@ import BrowsePage from './pages/BrowsePage';
 import DashboardPage from './pages/DashboardPage';
 import LoginPage from './pages/LoginPage';
 import NotificationsPage from './pages/NotificationsPage';
+import ChatPage from './pages/ChatPage';
 import ProfilePage from './pages/ProfilePage';
 import RankPage from './pages/RankPage';
 import { styles } from './styles/styles';
@@ -20,6 +21,12 @@ export default function App() {
   const [receivedBorrowRequests, setReceivedBorrowRequests] = useState([]);
   const [exchangeRequests, setExchangeRequests] = useState([]);
   const [reservations, setReservations] = useState([]);
+  const [chatUsers, setChatUsers] = useState([]);
+  const [chatConversations, setChatConversations] = useState([]);
+  const [selectedChatUser, setSelectedChatUser] = useState('');
+  const [chatMessages, setChatMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [seenNotificationKey, setSeenNotificationKey] = useState('');
   const [isExchangeModalOpen, setIsExchangeModalOpen] = useState(false);
   const [selectedBookForExchange, setSelectedBookForExchange] = useState(null);
   const [targetBook, setTargetBook] = useState(null);
@@ -36,6 +43,17 @@ export default function App() {
 
   const filteredBooks = books.filter((book) => book.title.toLowerCase().includes(search.toLowerCase()));
   const listedBooks = books.filter((book) => (book.owner || '').toLowerCase() === username.toLowerCase());
+  const notificationItems = [...borrowRequests, ...receivedBorrowRequests];
+  const notificationKey = JSON.stringify(
+    notificationItems.map((item) => ({
+      id: item.id,
+      status: item.status,
+      borrower: item.borrower,
+      title: item.book_title,
+    }))
+  );
+  const hasUnreadNotifications = notificationItems.length > 0 && notificationKey !== seenNotificationKey;
+  const hasUnreadChat = chatConversations.some((conversation) => (conversation.unread_count || 0) > 0);
 
   const normalizeExchangeRequest = (request) => ({
     id: request.id,
@@ -121,6 +139,12 @@ export default function App() {
     setReceivedBorrowRequests([]);
     setExchangeRequests([]);
     setReservations([]);
+    setChatUsers([]);
+    setChatConversations([]);
+    setSelectedChatUser('');
+    setChatMessages([]);
+    setNewMessage('');
+    setSeenNotificationKey('');
     setIsExchangeModalOpen(false);
     setSelectedBookForExchange(null);
     setTargetBook(null);
@@ -363,6 +387,89 @@ export default function App() {
     }
   };
 
+  const loadChatUsers = async () => {
+    if (!username) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/chat/users/?username=${encodeURIComponent(username)}`);
+      const data = await response.json();
+      if (response.ok) {
+        setChatUsers(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch chat users:', error);
+    }
+  };
+
+  const loadChatConversations = async () => {
+    if (!username) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/chat/conversations/?username=${encodeURIComponent(username)}`);
+      const data = await response.json();
+      if (response.ok) {
+        setChatConversations(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch chat conversations:', error);
+    }
+  };
+
+  const loadChatMessages = async (otherUser) => {
+    if (!username || !otherUser) {
+      setChatMessages([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API_BASE}/chat/messages/?username=${encodeURIComponent(username)}&with_user=${encodeURIComponent(otherUser)}`
+      );
+      const data = await response.json();
+      if (response.ok) {
+        setChatMessages(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch chat messages:', error);
+    }
+  };
+
+  const handleSendMessage = async (event) => {
+    event.preventDefault();
+
+    if (!selectedChatUser || !newMessage.trim()) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/chat/messages/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender: username,
+          recipient: selectedChatUser,
+          content: newMessage.trim(),
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Failed to send message.');
+        return;
+      }
+
+      setChatMessages((prev) => [...prev, data]);
+      setNewMessage('');
+      await loadChatConversations();
+    } catch {
+      alert('Failed to connect to backend.');
+    }
+  };
+
   useEffect(() => {
     if (isLoggedIn) {
       loadBooks();
@@ -437,6 +544,43 @@ export default function App() {
     fetchExchangeRequests();
   }, [isLoggedIn, username]);
 
+  useEffect(() => {
+    if (!isLoggedIn || !username) {
+      return;
+    }
+
+    loadChatUsers();
+    loadChatConversations();
+  }, [isLoggedIn, username]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !username || view !== 'chat') {
+      return;
+    }
+
+    loadChatConversations();
+    const intervalId = window.setInterval(() => {
+      loadChatConversations();
+      if (selectedChatUser) {
+        loadChatMessages(selectedChatUser);
+      }
+    }, 4000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isLoggedIn, username, view, selectedChatUser]);
+
+  useEffect(() => {
+    if (view === 'chat' && selectedChatUser) {
+      loadChatMessages(selectedChatUser);
+    }
+  }, [view, selectedChatUser]);
+
+  useEffect(() => {
+    if (view === 'notifications') {
+      setSeenNotificationKey(notificationKey);
+    }
+  }, [view, notificationKey]);
+
   if (!isLoggedIn) {
     return (
       <LoginPage
@@ -458,7 +602,15 @@ export default function App() {
 
   return (
     <div style={styles.container}>
-      <Navbar view={view} setView={setView} search={search} setSearch={setSearch} onLogout={handleLogout} />
+      <Navbar
+        view={view}
+        setView={setView}
+        search={search}
+        setSearch={setSearch}
+        onLogout={handleLogout}
+        hasUnreadNotifications={hasUnreadNotifications}
+        hasUnreadChat={hasUnreadChat}
+      />
 
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         {view === 'browse' && (
@@ -513,6 +665,20 @@ export default function App() {
             onAddBook={handleAddBook}
             onDeleteBook={handleDeleteBook}
             onRateBook={handleRateBook}
+          />
+        )}
+
+        {view === 'chat' && (
+          <ChatPage
+            username={username}
+            users={chatUsers}
+            conversations={chatConversations}
+            selectedChatUser={selectedChatUser}
+            setSelectedChatUser={setSelectedChatUser}
+            messages={chatMessages}
+            newMessage={newMessage}
+            setNewMessage={setNewMessage}
+            onSendMessage={handleSendMessage}
           />
         )}
 
