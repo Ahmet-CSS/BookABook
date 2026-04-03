@@ -2,15 +2,42 @@ import json
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
-from django.db.models import Avg
+from django.db.models import Avg, Case, CharField, Count, F, Max, Q, When
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .models import Book, BookRating, BorrowRequest, ExchangeRequest, Reservation
-from .serializers import BookSerializer, BorrowRequestSerializer, ReservationSerializer
+from .models import Book, BookRating, BorrowRequest, ChatMessage, ExchangeRequest, Reservation
+from .serializers import BookSerializer, BorrowRequestSerializer, ChatMessageSerializer, ReservationSerializer
+
+
+def get_chat_contacts(username):
+    contacts = set()
+
+    contacts.update(
+        BorrowRequest.objects.filter(borrower=username).values_list("book__owner", flat=True)
+    )
+    contacts.update(
+        BorrowRequest.objects.filter(book__owner=username).values_list("borrower", flat=True)
+    )
+    contacts.update(
+        Reservation.objects.filter(reserver=username).values_list("book__owner", flat=True)
+    )
+    contacts.update(
+        Reservation.objects.filter(book__owner=username).values_list("reserver", flat=True)
+    )
+    contacts.update(
+        ExchangeRequest.objects.filter(requester=username).values_list("book__owner", flat=True)
+    )
+    contacts.update(
+        ExchangeRequest.objects.filter(book__owner=username).values_list("requester", flat=True)
+    )
+
+    contacts.discard("")
+    contacts.discard(username)
+    return sorted(contacts)
 
 
 @api_view(["GET", "POST"])
@@ -324,3 +351,91 @@ def rate_book(request, book_id):
     book.save()
 
     return Response({"new_average_rating": book.rating}, status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+def chat_users(request):
+    username = request.GET.get("username", "").strip()
+    if not username:
+        return Response({"error": "username is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response(get_chat_contacts(username), status=status.HTTP_200_OK)
+
+
+@api_view(["GET"])
+def chat_conversations(request):
+    username = request.GET.get("username", "").strip()
+    if not username:
+        return Response({"error": "username is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    allowed_contacts = set(get_chat_contacts(username))
+    conversations = (
+        ChatMessage.objects.filter(Q(sender=username) | Q(recipient=username))
+        .annotate(
+            other_user=Case(
+                When(sender=username, then=F("recipient")),
+                default=F("sender"),
+                output_field=CharField(),
+            )
+        )
+        .values("other_user")
+        .annotate(last_message_at=Max("created_at"))
+        .order_by("-last_message_at")
+    )
+
+    unread_counts = {
+        row["sender"]: row["count"]
+        for row in (
+            ChatMessage.objects.filter(recipient=username, is_read=False)
+            .values("sender")
+            .annotate(count=Count("id"))
+        )
+    }
+
+    data = [
+        {
+            "username": item["other_user"],
+            "last_message_at": item["last_message_at"],
+            "unread_count": unread_counts.get(item["other_user"], 0),
+        }
+        for item in conversations
+        if item["other_user"] in allowed_contacts
+    ]
+    return Response(data, status=status.HTTP_200_OK)
+
+
+@api_view(["GET", "POST"])
+def chat_messages(request):
+    if request.method == "GET":
+        username = request.GET.get("username", "").strip()
+        other_user = request.GET.get("with_user", "").strip()
+        if not username or not other_user:
+            return Response({"error": "username and with_user are required"}, status=status.HTTP_400_BAD_REQUEST)
+        if other_user not in get_chat_contacts(username):
+            return Response({"error": "Chat is only available for related users"}, status=status.HTTP_403_FORBIDDEN)
+
+        messages = ChatMessage.objects.filter(
+            (Q(sender=username) & Q(recipient=other_user))
+            | (Q(sender=other_user) & Q(recipient=username))
+        )
+        ChatMessage.objects.filter(sender=other_user, recipient=username, is_read=False).update(is_read=True)
+        serializer = ChatMessageSerializer(messages, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    sender = str(request.data.get("sender", "")).strip()
+    recipient = str(request.data.get("recipient", "")).strip()
+    content = str(request.data.get("content", "")).strip()
+    if not sender or not recipient or not content:
+        return Response({"error": "sender, recipient, and content are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if sender == recipient:
+        return Response({"error": "Cannot send a message to yourself"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not User.objects.filter(username=recipient).exists():
+        return Response({"error": "Recipient not found"}, status=status.HTTP_404_NOT_FOUND)
+    if recipient not in get_chat_contacts(sender):
+        return Response({"error": "Chat is only available for related users"}, status=status.HTTP_403_FORBIDDEN)
+
+    message = ChatMessage.objects.create(sender=sender, recipient=recipient, content=content)
+    serializer = ChatMessageSerializer(message)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)

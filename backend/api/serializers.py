@@ -1,13 +1,32 @@
 from rest_framework import serializers
-from .models import Book, BorrowRequest
+
+from .models import Book, BorrowRequest, ChatMessage, Reservation
+
 
 class BookSerializer(serializers.ModelSerializer):
     class Meta:
         model = Book
-        fields = '__all__' 
+        fields = "__all__"
+
 
 class BorrowRequestSerializer(serializers.ModelSerializer):
-    book_title = serializers.CharField(source='book.title', read_only=True)
+    book_title = serializers.CharField(source="book.title", read_only=True)
+    book_owner = serializers.CharField(source="book.owner", read_only=True)
+
     class Meta:
         model = BorrowRequest
-        fields = ['id', 'book', 'book_title', 'borrower', 'status']
+        fields = ["id", "book", "book_title", "book_owner", "borrower", "status"]
+
+
+class ReservationSerializer(serializers.ModelSerializer):
+    book_title = serializers.CharField(source="book.title", read_only=True)
+
+    class Meta:
+        model = Reservation
+        fields = ["id", "book", "book_title", "reserver", "status"]
+
+
+class ChatMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ChatMessage
+        fields = ["id", "sender", "recipient", "content", "is_read", "created_at"]
