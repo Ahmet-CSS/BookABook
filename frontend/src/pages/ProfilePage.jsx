@@ -1,5 +1,5 @@
-import React from 'react';
-import { User, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Star, User, X } from 'lucide-react';
 import { styles } from '../styles/styles';
 import { theme } from '../styles/theme';
 
@@ -20,7 +20,20 @@ export default function ProfilePage({
   addBookMessage,
   onAddBook,
   onDeleteBook,
+  onRateBook,
 }) {
+  const [ratedBooks, setRatedBooks] = useState({});
+
+  const handleStarClick = (bookId, title, score) => {
+    if (ratedBooks[title]) {
+      return;
+    }
+    if (typeof onRateBook === 'function') {
+      onRateBook(bookId, title, score);
+      setRatedBooks((prev) => ({ ...prev, [title]: score }));
+    }
+  };
+
   return (
     <div style={{ background: theme.cardBg, padding: '30px', borderRadius: '24px', border: `1px solid ${theme.border}` }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 2.4fr)', gap: '16px' }}>
@@ -61,28 +74,30 @@ export default function ProfilePage({
                     position: 'relative',
                   }}
                 >
-                  <button
-                    type="button"
-                    aria-label={`Delete ${book.title}`}
-                    onClick={() => onDeleteBook(book.id)}
-                    style={{
-                      position: 'absolute',
-                      top: '10px',
-                      right: '10px',
-                      width: '28px',
-                      height: '28px',
-                      borderRadius: '999px',
-                      border: `1px solid ${theme.border}`,
-                      background: theme.cardBg,
-                      color: theme.error,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <X size={14} />
-                  </button>
+                  {typeof onDeleteBook === 'function' ? (
+                    <button
+                      type="button"
+                      aria-label={`Delete ${book.title}`}
+                      onClick={() => onDeleteBook(book.id)}
+                      style={{
+                        position: 'absolute',
+                        top: '10px',
+                        right: '10px',
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '999px',
+                        border: `1px solid ${theme.border}`,
+                        background: theme.cardBg,
+                        color: theme.error,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  ) : null}
                   <div style={{ fontWeight: 'bold' }}>{book.title}</div>
                   <div style={{ fontSize: '13px', color: theme.textMuted }}>
                     by {book.author} | {book.genre} | ISBN: {book.isbn}
@@ -159,6 +174,27 @@ export default function ProfilePage({
                   <div style={{ fontWeight: 'bold' }}>{book.title}</div>
                   <div style={{ fontSize: '13px', color: theme.textMuted }}>
                     Owner: {book.owner} | Due: {book.due}
+                  </div>
+
+                  <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: `1px dashed ${theme.border}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '12px', color: theme.textMuted }}>
+                      {ratedBooks[book.title] ? 'Your rating:' : 'Rate this book:'}
+                    </span>
+                    <div style={{ display: 'flex', gap: '2px' }}>
+                      {[1, 2, 3, 4, 5].map((star) => {
+                        const currentScore = ratedBooks[book.title] || 0;
+                        return (
+                          <Star
+                            key={star}
+                            size={16}
+                            fill={currentScore >= star ? theme.accent : 'none'}
+                            color={currentScore >= star ? theme.accent : theme.textMuted}
+                            style={{ cursor: ratedBooks[book.title] ? 'default' : 'pointer', transition: '0.2s' }}
+                            onClick={() => handleStarClick(book.id, book.title, star)}
+                          />
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               ))}

@@ -44,4 +44,4 @@ ENV/
 .cache/
 .parcel-cache/
 .eslintcache
-.stylelintcache
+.stylelintcachebackend/db.sqlite3

@@ -1,29 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { styles } from './styles/styles';
+import React, { useEffect, useState } from 'react';
 import Navbar from './components/Navbar';
-import LoginPage from './pages/LoginPage';
 import BrowsePage from './pages/BrowsePage';
 import DashboardPage from './pages/DashboardPage';
-import ProfilePage from './pages/ProfilePage';
+import LoginPage from './pages/LoginPage';
 import NotificationsPage from './pages/NotificationsPage';
+import ProfilePage from './pages/ProfilePage';
+import RankPage from './pages/RankPage';
+import { styles } from './styles/styles';
+import { theme } from './styles/theme';
+
+const API_BASE = 'http://localhost:8000/api';
 
 export default function App() {
   const [view, setView] = useState('browse');
   const [search, setSearch] = useState('');
   const [books, setBooks] = useState([]);
   const [borrowedBooks] = useState([]);
-
   const [borrowRequests, setBorrowRequests] = useState([]);
   const [receivedBorrowRequests, setReceivedBorrowRequests] = useState([]);
   const [exchangeRequests, setExchangeRequests] = useState([]);
-  const [selectedExchangeBook, setSelectedExchangeBook] = useState('');
-
+  const [reservations, setReservations] = useState([]);
+  const [isExchangeModalOpen, setIsExchangeModalOpen] = useState(false);
+  const [selectedBookForExchange, setSelectedBookForExchange] = useState(null);
+  const [targetBook, setTargetBook] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoginMode, setIsLoginMode] = useState(true);
-
   const [newBookTitle, setNewBookTitle] = useState('');
   const [newBookAuthor, setNewBookAuthor] = useState('');
   const [newBookGenre, setNewBookGenre] = useState('');
@@ -33,16 +37,24 @@ export default function App() {
   const filteredBooks = books.filter((book) => book.title.toLowerCase().includes(search.toLowerCase()));
   const listedBooks = books.filter((book) => (book.owner || '').toLowerCase() === username.toLowerCase());
 
+  const normalizeExchangeRequest = (request) => ({
+    id: request.id,
+    requestedBookTitle: request.requestedBookTitle || request.requested_book_title,
+    owner: request.owner || request.requested_book_owner,
+    offeredBookTitle: request.offeredBookTitle || request.offered_book_title,
+    status: request.status,
+  });
+
   const loadBooks = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/books/');
+      const response = await fetch(`${API_BASE}/books/`);
       if (!response.ok) {
         return;
       }
       const data = await response.json();
       setBooks(Array.isArray(data) ? data : []);
     } catch {
-      // Keep the existing in-memory list if the backend is temporarily unavailable.
+      // Keep the current list if the backend is unavailable.
     }
   };
 
@@ -53,21 +65,22 @@ export default function App() {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/login/', {
+      const response = await fetch(`${API_BASE}/login/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
       const data = await response.json();
 
-      if (response.ok) {
-        setIsLoggedIn(true);
-        setUsername(data.username || username);
-        setErrorMessage('');
-        await loadBooks();
-      } else {
+      if (!response.ok) {
         setErrorMessage(data.error || 'Login failed, please check your credentials');
+        return;
       }
+
+      setIsLoggedIn(true);
+      setUsername(data.username || username);
+      setErrorMessage('');
+      await loadBooks();
     } catch {
       setErrorMessage('Failed to connect to Django. Is the server running & CORS configured?');
     }
@@ -80,7 +93,7 @@ export default function App() {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/register/', {
+      const response = await fetch(`${API_BASE}/register/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
@@ -107,6 +120,10 @@ export default function App() {
     setBorrowRequests([]);
     setReceivedBorrowRequests([]);
     setExchangeRequests([]);
+    setReservations([]);
+    setIsExchangeModalOpen(false);
+    setSelectedBookForExchange(null);
+    setTargetBook(null);
     localStorage.removeItem('token');
   };
 
@@ -117,7 +134,7 @@ export default function App() {
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/books/', {
+      const response = await fetch(`${API_BASE}/books/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -127,6 +144,7 @@ export default function App() {
           isbn: newBookIsbn.trim(),
           owner: username || 'Unknown',
           rating: 5.0,
+          status: 'available',
         }),
       });
 
@@ -149,13 +167,13 @@ export default function App() {
 
   const handleDeleteBook = async (bookId) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/books/${bookId}/`, {
+      const response = await fetch(`${API_BASE}/books/${bookId}/`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username }),
       });
-
       const data = await response.json();
+
       if (!response.ok) {
         alert(data.error || 'Failed to delete the book.');
         return;
@@ -168,24 +186,48 @@ export default function App() {
     }
   };
 
+  const handleRateBook = async (bookId, bookTitle, userRating) => {
+    try {
+      const response = await fetch(`${API_BASE}/books/${bookId}/rate/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rating: userRating, username }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        alert(data.error || 'Failed to rate the book.');
+        return;
+      }
+
+      setBooks((prevBooks) =>
+        prevBooks.map((book) =>
+          book.id === bookId ? { ...book, rating: data.new_average_rating } : book
+        )
+      );
+      alert(`Success! Rated "${bookTitle}" ${userRating} stars.`);
+    } catch {
+      alert('Failed to rate the book. Please try again.');
+    }
+  };
+
   const handleBorrowRequest = async (book) => {
     const alreadyRequested = borrowRequests.some(
       (request) => request.book === book.id && request.borrower === username
     );
-
     if (alreadyRequested) {
       alert('You already requested this book.');
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:8000/api/borrow/', {
+      const response = await fetch(`${API_BASE}/borrow/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ book_id: book.id, borrower: username }),
       });
-
       const data = await response.json();
+
       if (!response.ok) {
         alert(data.error || 'Failed to create borrow request.');
         return;
@@ -193,18 +235,18 @@ export default function App() {
 
       setBorrowRequests((prev) => [...prev, data]);
       alert('Borrow request sent successfully!');
-    } catch (error) {
+    } catch {
       alert('Failed to connect to Django. Is the server running & CORS configured?');
     }
   };
 
   const handleUndoBorrowRequest = async (requestId) => {
     try {
-      const response = await fetch(`http://localhost:8000/api/borrow-request/${requestId}/`, {
+      const response = await fetch(`${API_BASE}/borrow-request/${requestId}/`, {
         method: 'DELETE',
       });
-
       const data = await response.json();
+
       if (!response.ok) {
         alert(data.error || 'Failed to undo borrow request.');
         return;
@@ -213,85 +255,187 @@ export default function App() {
       setBorrowRequests((prev) => prev.filter((request) => request.id !== requestId));
       setReceivedBorrowRequests((prev) => prev.filter((request) => request.id !== requestId));
       alert('Borrow request removed.');
-    } catch (error) {
+    } catch {
       alert('Failed to connect to Django. Is the server running & CORS configured?');
     }
   };
 
-  const handleExchangeRequest = async (book) => {
-    const alreadyRequested = exchangeRequests.some(
-      (request) => request.requestedBookTitle === book.title && request.owner === book.owner
-    );
-
+  const handleExchangeRequest = (book) => {
+    const alreadyRequested = exchangeRequests.some((request) => {
+      const normalized = normalizeExchangeRequest(request);
+      return normalized.requestedBookTitle === book.title && normalized.owner === book.owner;
+    });
     if (alreadyRequested) {
       alert('You already requested this book for exchange.');
       return;
     }
 
-    const myBooks = books.filter((b) => b.owner === username);
+    const myBooks = books.filter((candidate) => candidate.owner === username);
     if (myBooks.length === 0) {
       alert('You need to have at least one book listed to request an exchange.');
       return;
     }
 
-    try {
-      const newRequest = {
-        id: Date.now(),
-        requestedBookTitle: book.title,
-        owner: book.owner,
-        offeredBookTitle: myBooks[0].title,
-        status: 'Pending',
-      };
+    setTargetBook(book);
+    setSelectedBookForExchange(null);
+    setIsExchangeModalOpen(true);
+  };
 
-      setExchangeRequests((prev) => [...prev, newRequest]);
+  const handleConfirmExchangeRequest = async () => {
+    if (!targetBook || !selectedBookForExchange) {
+      alert('Select a book first.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/exchange-request/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          book_id: targetBook.id,
+          requester: username,
+          offered_book_title: selectedBookForExchange.title,
+          offered_book_author: selectedBookForExchange.author,
+          offered_book_genre: selectedBookForExchange.genre,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Failed to create exchange request.');
+        return;
+      }
+
+      const createdRequest = normalizeExchangeRequest({
+        id: data.exchange_request_id,
+        requestedBookTitle: targetBook.title,
+        owner: targetBook.owner,
+        offeredBookTitle: selectedBookForExchange.title,
+        status: 'pending',
+      });
+      setExchangeRequests((prev) => [...prev, createdRequest]);
+      setIsExchangeModalOpen(false);
+      setSelectedBookForExchange(null);
+      setTargetBook(null);
       alert('Exchange request sent successfully!');
-    } catch (error) {
+    } catch {
       alert('Failed to connect to Django. Is the server running & CORS configured?');
     }
   };
 
+  const handleReserveRequest = async (book) => {
+    try {
+      const response = await fetch(`${API_BASE}/reserve/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ book_id: book.id, reserver: username }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Failed to reserve the book.');
+        return;
+      }
+
+      setReservations((prev) => [...prev, data]);
+      alert('Book reserved successfully!');
+    } catch {
+      alert('Failed to connect to backend.');
+    }
+  };
+
+  const handleCancelReservation = async (reservationId) => {
+    try {
+      const response = await fetch(`${API_BASE}/reservation/${reservationId}/cancel/`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Failed to cancel reservation.');
+        return;
+      }
+
+      setReservations((prev) => prev.filter((reservation) => reservation.id !== reservationId));
+      alert('Reservation cancelled.');
+    } catch {
+      alert('Failed to connect to backend.');
+    }
+  };
 
   useEffect(() => {
-    const fetchMyBorrowRequests = async () => {
+    if (isLoggedIn) {
+      loadBooks();
+    }
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    const fetchBorrowData = async () => {
       if (!isLoggedIn || !username) {
         return;
       }
 
       try {
-        const response = await fetch(`http://localhost:8000/api/borrow-requests/?borrower=${username}`);
-        const data = await response.json();
+        const [myResponse, receivedResponse] = await Promise.all([
+          fetch(`${API_BASE}/borrow-requests/?borrower=${encodeURIComponent(username)}`),
+          fetch(`${API_BASE}/borrow-requests/?owner=${encodeURIComponent(username)}`),
+        ]);
 
-        if (response.ok) {
-          setBorrowRequests(data);
+        const [myData, receivedData] = await Promise.all([myResponse.json(), receivedResponse.json()]);
+
+        if (myResponse.ok) {
+          setBorrowRequests(Array.isArray(myData) ? myData : []);
+        }
+        if (receivedResponse.ok) {
+          setReceivedBorrowRequests(Array.isArray(receivedData) ? receivedData : []);
         }
       } catch (error) {
-        console.error('Failed to fetch my borrow requests:', error);
+        console.error('Failed to fetch borrow requests:', error);
       }
     };
 
-    const fetchReceivedBorrowRequests = async () => {
-      if (!isLoggedIn || !username) {
-        return;
-      }
-
-      try {
-        const response = await fetch(`http://localhost:8000/api/borrow-requests/?owner=${username}`);
-        const data = await response.json();
-
-        if (response.ok) {
-          setReceivedBorrowRequests(data);
-        }
-      } catch (error) {
-        console.error('Failed to fetch received borrow requests:', error);
-      }
-    };
-
-    fetchMyBorrowRequests();
-    fetchReceivedBorrowRequests();
+    fetchBorrowData();
   }, [isLoggedIn, username]);
 
+  useEffect(() => {
+    const fetchReservations = async () => {
+      if (!isLoggedIn || !username) {
+        return;
+      }
 
-    
+      try {
+        const response = await fetch(`${API_BASE}/reservations/?reserver=${encodeURIComponent(username)}`);
+        const data = await response.json();
+        if (response.ok) {
+          setReservations(Array.isArray(data) ? data : []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch reservations:', error);
+      }
+    };
+
+    fetchReservations();
+  }, [isLoggedIn, username]);
+
+  useEffect(() => {
+    const fetchExchangeRequests = async () => {
+      if (!isLoggedIn || !username) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`${API_BASE}/exchange-requests/?requester=${encodeURIComponent(username)}`);
+        const data = await response.json();
+        if (response.ok) {
+          setExchangeRequests(Array.isArray(data) ? data.map(normalizeExchangeRequest) : []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch exchange requests:', error);
+      }
+    };
+
+    fetchExchangeRequests();
+  }, [isLoggedIn, username]);
 
   if (!isLoggedIn) {
     return (
@@ -317,12 +461,19 @@ export default function App() {
       <Navbar view={view} setView={setView} search={search} setSearch={setSearch} onLogout={handleLogout} />
 
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        {view === 'browse' && <BrowsePage books={filteredBooks} onBorrowRequest={handleBorrowRequest} borrowRequests={borrowRequests}
-           onExchangeRequest={handleExchangeRequest} username={username} exchangeRequests={exchangeRequests}
-           myBooks={books.filter((b) => b.owner === username)}
-           selectedExchangeBook={selectedExchangeBook}
-           setSelectedExchangeBook={setSelectedExchangeBook}
-            />}
+        {view === 'browse' && (
+          <BrowsePage
+            books={filteredBooks}
+            onBorrowRequest={handleBorrowRequest}
+            borrowRequests={borrowRequests}
+            onExchangeRequest={handleExchangeRequest}
+            username={username}
+            exchangeRequests={exchangeRequests}
+            onReserveRequest={handleReserveRequest}
+            onCancelReservation={handleCancelReservation}
+            reservations={reservations}
+          />
+        )}
 
         {view === 'dashboard' && (
           <DashboardPage
@@ -330,6 +481,7 @@ export default function App() {
             borrowRequests={borrowRequests}
             receivedBorrowRequests={receivedBorrowRequests}
             exchangeRequests={exchangeRequests}
+            reservations={reservations}
             onUndoBorrowRequest={handleUndoBorrowRequest}
           />
         )}
@@ -360,9 +512,112 @@ export default function App() {
             addBookMessage={addBookMessage}
             onAddBook={handleAddBook}
             onDeleteBook={handleDeleteBook}
+            onRateBook={handleRateBook}
           />
         )}
+
+        {view === 'rank' && <RankPage books={books} />}
       </div>
+
+      {isExchangeModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: theme.cardBg,
+              padding: '30px',
+              borderRadius: '24px',
+              width: '420px',
+              border: `1px solid ${theme.border}`,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            }}
+          >
+            <h3
+              style={{
+                fontSize: '20px',
+                fontWeight: 'bold',
+                marginBottom: '20px',
+                borderBottom: `1px solid ${theme.border}`,
+                paddingBottom: '10px',
+              }}
+            >
+              Select a book to exchange
+            </h3>
+
+            <div style={{ maxHeight: '250px', overflowY: 'auto', marginBottom: '20px' }}>
+              {books
+                .filter((book) => book.owner === username)
+                .map((book) => (
+                  <div
+                    key={book.id}
+                    onClick={() => setSelectedBookForExchange(book)}
+                    style={{
+                      padding: '12px',
+                      borderRadius: '12px',
+                      marginBottom: '10px',
+                      cursor: 'pointer',
+                      background: selectedBookForExchange?.id === book.id ? theme.primary : theme.bg,
+                      color: selectedBookForExchange?.id === book.id ? 'white' : theme.text,
+                      border: `1px solid ${theme.border}`,
+                      transition: '0.2s',
+                    }}
+                  >
+                    {book.title}
+                  </div>
+                ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+              <button
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: theme.border,
+                  color: theme.text,
+                  cursor: 'pointer',
+                }}
+                onClick={() => {
+                  setIsExchangeModalOpen(false);
+                  setSelectedBookForExchange(null);
+                  setTargetBook(null);
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: theme.primary,
+                  color: 'white',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                }}
+                onClick={handleConfirmExchangeRequest}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
