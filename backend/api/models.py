@@ -53,3 +53,17 @@ class Reservation(models.Model):
 
     def __str__(self):
         return f"{self.reserver} reserved {self.book.title}"
+
+
+class ChatMessage(models.Model):
+    sender = models.CharField(max_length=100)
+    recipient = models.CharField(max_length=100)
+    content = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.sender} -> {self.recipient}"

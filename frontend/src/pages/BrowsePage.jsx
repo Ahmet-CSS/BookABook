@@ -23,6 +23,13 @@ export default function BrowsePage({
     activeGenre === 'All' ? true : book.genre === activeGenre
   );
 
+  const hasExchangeRequest = (book) =>
+    exchangeRequests.some((request) => {
+      const requestedTitle = request.requestedBookTitle || request.requested_book_title;
+      const requestedOwner = request.owner || request.requested_book_owner;
+      return requestedTitle === book.title && requestedOwner === book.owner;
+    });
+
   return (
     <div>
       <h2 style={{ fontSize: '32px', fontWeight: '900', marginBottom: '30px' }}>LIBRARY CATALOG</h2>
@@ -112,13 +119,9 @@ export default function BrowsePage({
           <button
           style={{ ...styles.button, background: theme.secondary, marginTop: '10px' }}
           onClick={() => onExchangeRequest(book)}
-          disabled={exchangeRequests.some(
-            (request) => request.requestedBookTitle === book.title && request.owner === book.owner
-          )}
+          disabled={hasExchangeRequest(book)}
           >
-            {exchangeRequests.some(
-              (request) => request.requestedBookTitle === book.title && request.owner === book.owner
-            )
+            {hasExchangeRequest(book)
               ? 'Exchange Requested'
               : 'Request Exchange'}
           </button>

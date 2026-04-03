@@ -1,5 +1,5 @@
-import React, { useState } from 'react'; 
-import { User, Star } from 'lucide-react'; 
+import React, { useState } from 'react';
+import { Star, User, X } from 'lucide-react';
 import { styles } from '../styles/styles';
 import { theme } from '../styles/theme';
 
@@ -19,19 +19,18 @@ export default function ProfilePage({
   setNewBookIsbn,
   addBookMessage,
   onAddBook,
+  onDeleteBook,
   onRateBook,
 }) {
-
   const [ratedBooks, setRatedBooks] = useState({});
 
   const handleStarClick = (bookId, title, score) => {
-    if (ratedBooks[title]) return; 
+    if (ratedBooks[title]) {
+      return;
+    }
     if (typeof onRateBook === 'function') {
       onRateBook(bookId, title, score);
-      setRatedBooks(prev => ({ ...prev, [title]: score }));
-    } else {
-      console.error("onRateBook failed:", typeof onRateBook);
-      alert("Please check App.jsx 's code！");
+      setRatedBooks((prev) => ({ ...prev, [title]: score }));
     }
   };
 
@@ -72,8 +71,33 @@ export default function ProfilePage({
                     border: `1px solid ${theme.border}`,
                     borderRadius: '12px',
                     padding: '12px',
+                    position: 'relative',
                   }}
                 >
+                  {typeof onDeleteBook === 'function' ? (
+                    <button
+                      type="button"
+                      aria-label={`Delete ${book.title}`}
+                      onClick={() => onDeleteBook(book.id)}
+                      style={{
+                        position: 'absolute',
+                        top: '10px',
+                        right: '10px',
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '999px',
+                        border: `1px solid ${theme.border}`,
+                        background: theme.cardBg,
+                        color: theme.error,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <X size={14} />
+                    </button>
+                  ) : null}
                   <div style={{ fontWeight: 'bold' }}>{book.title}</div>
                   <div style={{ fontSize: '13px', color: theme.textMuted }}>
                     by {book.author} | {book.genre} | ISBN: {book.isbn}
@@ -151,13 +175,13 @@ export default function ProfilePage({
                   <div style={{ fontSize: '13px', color: theme.textMuted }}>
                     Owner: {book.owner} | Due: {book.due}
                   </div>
-                  
+
                   <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: `1px dashed ${theme.border}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '12px', color: theme.textMuted }}>
                       {ratedBooks[book.title] ? 'Your rating:' : 'Rate this book:'}
                     </span>
                     <div style={{ display: 'flex', gap: '2px' }}>
-                      {[1, 2, 3, 4, 5].map(star => {
+                      {[1, 2, 3, 4, 5].map((star) => {
                         const currentScore = ratedBooks[book.title] || 0;
                         return (
                           <Star
