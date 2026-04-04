@@ -11,6 +11,8 @@ from rest_framework.response import Response
 
 from .models import Book, BookRating, BorrowRequest, ChatMessage, ExchangeRequest, Reservation
 from .serializers import BookSerializer, BorrowRequestSerializer, ChatMessageSerializer, ReservationSerializer
+from django.utils import timezone 
+from datetime import timedelta
 
 
 def get_chat_contacts(username):
@@ -197,6 +199,37 @@ def cancel_reservation(request, reservation_id):
     reservation.delete()
     return Response({"message": "Reservation canceled successfully"}, status=status.HTTP_200_OK)
 
+# Borrow request approval/rejection endpoints for book owners
+@api_view(["POST"])
+def accept_borrow_request(request, request_id):
+    try:
+        borrow_request = BorrowRequest.objects.get(id=request_id)
+    except BorrowRequest.DoesNotExist:
+        return Response({"error": "Borrow request not found!"}, status=status.HTTP_404_NOT_FOUND)
+
+    borrow_request.status = "accepted"
+    borrow_request.due_date = timezone.now().date() + timedelta(days=14)
+    borrow_request.save()
+
+    borrow_request.book.status = "unavailable"
+    borrow_request.book.save()
+
+    serializer = BorrowRequestSerializer(borrow_request)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+def reject_borrow_request(request, request_id):
+    try:
+        borrow_request = BorrowRequest.objects.get(id=request_id)
+    except BorrowRequest.DoesNotExist:
+        return Response({"error": "Borrow request not found!"}, status=status.HTTP_404_NOT_FOUND)
+
+    borrow_request.status = "rejected"
+    borrow_request.save()
+
+    serializer = BorrowRequestSerializer(borrow_request)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(["PATCH"])
 def update_book_status(request, book_id):
@@ -273,10 +306,14 @@ def get_exchange_requests(request):
         return JsonResponse({"error": "Only GET method allowed"}, status=405)
 
     requester = request.GET.get("requester")
-    if not requester:
-        return JsonResponse({"error": "Requester is required"}, status=400)
-
-    exchange_requests = ExchangeRequest.objects.filter(requester=requester)
+    owner = request.GET.get("owner")
+    if requester:
+        exchange_requests = ExchangeRequest.objects.filter(requester=requester)
+    elif owner:
+        exchange_requests = ExchangeRequest.objects.filter(book__owner=owner)
+    else:
+        return JsonResponse({"error": "requester or owner is required"}, status=400)
+    
     data = [
         {
             "id": exchange.id,

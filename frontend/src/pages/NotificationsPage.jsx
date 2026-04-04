@@ -6,10 +6,17 @@ export default function NotificationsPage({
   borrowRequests = [],
   receivedBorrowRequests = [],
   onUndoBorrowRequest,
+  onAcceptBorrowRequest,
+  onRejectBorrowRequest,
+  exchangeRequests = [],
+  receivedExchangeRequests = [],
+  onAcceptExchangeRequest,
+  onRejectExchangeRequest,
+  
 }) {
-  const hasNotifications = borrowRequests.length > 0 || receivedBorrowRequests.length > 0;
+  const hasNotifications = borrowRequests.length > 0 || receivedBorrowRequests.length > 0 || exchangeRequests.length > 0 || receivedExchangeRequests.length > 0;
 
-  function renderNotificationBox(icon, lineColor, boxColor, title, message, key, showUndoButton, requestId) {
+  function renderNotificationBox(icon, lineColor, boxColor, title, message, key, showUndoButton, requestId, showActionButtons, isExchangeAction = false) {
     return (
       <div
         key={key}
@@ -60,6 +67,42 @@ export default function NotificationsPage({
               Undo Request
             </button>
           ) : null}
+          {showActionButtons ? (
+            <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
+              <button
+                style={{
+                  background: theme.success,
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+                onClick={() => 
+                  isExchangeAction ? onAcceptExchangeRequest(requestId) : onAcceptBorrowRequest(requestId)
+                }
+              >
+                Accept
+              </button>
+              <button
+                style={{
+                  background: theme.error,
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+                onClick={() => isExchangeAction ? onRejectExchangeRequest(requestId) : onRejectBorrowRequest(requestId) }
+              >
+                Reject
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
     );
@@ -90,13 +133,14 @@ export default function NotificationsPage({
           {borrowRequests.map((request) =>
             renderNotificationBox(
               <BookOpen size={18} />,
-              theme.primary,
-              `${theme.primary}22`,
-              'Borrowing a book',
-              `You asked to borrow "${request.book_title || 'a book'}". Status: ${request.status || 'Pending'}`,
-              `borrow-${request.id}`,
-              request.status === 'pending',
-              request.id
+                theme.primary,
+                `${theme.primary}22`,
+                'Borrowing a book',
+                `You asked to borrow "${request.book_title || 'a book'}". Status: ${request.status || 'Pending'}`,
+                `borrow-${request.id}`,
+                request.status === 'pending',
+                request.id,
+                false
             )
           )}
 
@@ -109,7 +153,36 @@ export default function NotificationsPage({
               `${request.borrower || 'A user'} wants to borrow "${request.book_title || 'your book'}". Status: ${request.status || 'Pending'}`,
               `received-${request.id}`,
               false,
-              request.id
+              request.id,
+              request.status === 'pending'
+            )
+          )}
+
+          {exchangeRequests.map((request) =>
+            renderNotificationBox(
+              <BookOpen size={18} />,
+                theme.accent,
+                `${theme.accent}22`,
+                'Exchange request sent',
+                `You requested to exchange "${request.requestedBookTitle || 'a book'}". Status: ${request.status || 'Pending'}`,
+                `exchange-${request.id}`,
+                false,
+                request.id,
+                false
+            )
+          )}
+          {receivedExchangeRequests.map((request) =>
+            renderNotificationBox(
+              <User size={18} />,
+              theme.secondary,
+              `${theme.secondary}22`,
+              'Exchange request received',
+              `${request.requester || 'A user'} wants to exchange "${request.requestedBookTitle || 'a book'}". Status: ${request.status || 'Pending'}`,
+              `received-exchange-${request.id}`,
+              false,
+              request.id,
+              request.status === 'pending',
+              true
             )
           )}
         </div>
