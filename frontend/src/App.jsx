@@ -40,10 +40,11 @@ export default function App() {
   const [newBookGenre, setNewBookGenre] = useState('');
   const [newBookIsbn, setNewBookIsbn] = useState('');
   const [addBookMessage, setAddBookMessage] = useState('');
+  const[receivedExchangeRequests, setReceivedExchangeRequests] = useState([]);
 
   const filteredBooks = books.filter((book) => book.title.toLowerCase().includes(search.toLowerCase()));
   const listedBooks = books.filter((book) => (book.owner || '').toLowerCase() === username.toLowerCase());
-  const notificationItems = [...borrowRequests, ...receivedBorrowRequests];
+  const notificationItems = [...borrowRequests, ...receivedBorrowRequests, ...exchangeRequests, ...receivedExchangeRequests];
   const notificationKey = JSON.stringify(
     notificationItems.map((item) => ({
       id: item.id,
@@ -264,6 +265,51 @@ export default function App() {
     }
   };
 
+
+  const handleAcceptBorrowRequest = async (requestId) => {
+  try {
+    const response = await fetch(`${API_BASE}/borrow-request/${requestId}/accept/`, {
+      method: 'POST',
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.error || 'Failed to accept borrow request.');
+      return;
+    }
+
+    setReceivedBorrowRequests((prev) =>
+      prev.map((request) => (request.id === requestId ? data : request))
+    );
+
+    alert('Borrow request accepted.');
+  } catch {
+    alert('Failed to connect to Django. Is the server running & CORS configured?');
+  }
+};
+
+const handleRejectBorrowRequest = async (requestId) => {
+  try {
+    const response = await fetch(`${API_BASE}/borrow-request/${requestId}/reject/`, {
+      method: 'POST',
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.error || 'Failed to reject borrow request.');
+      return;
+    }
+
+    setReceivedBorrowRequests((prev) =>
+      prev.map((request) => (request.id === requestId ? data : request))
+    );
+
+    alert('Borrow request rejected.');
+  } catch {
+    alert('Failed to connect to Django. Is the server running & CORS configured?');
+  }
+};
+
   const handleUndoBorrowRequest = async (requestId) => {
     try {
       const response = await fetch(`${API_BASE}/borrow-request/${requestId}/`, {
@@ -346,6 +392,54 @@ export default function App() {
       alert('Failed to connect to Django. Is the server running & CORS configured?');
     }
   };
+
+  const handleAcceptExchangeRequest = async (requestId) => {
+  try {
+    const response = await fetch(`${API_BASE}/exchange-request/${requestId}/accept/`, {
+      method: 'POST',
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.error || 'Failed to accept exchange request.');
+      return;
+    }
+
+    setReceivedExchangeRequests((prev) =>
+      prev.map((request) =>
+        request.id === requestId ? { ...request, status: 'accepted' } : request
+      )
+    );
+
+    alert('Exchange request accepted.');
+  } catch {
+    alert('Failed to connect to Django. Is the server running & CORS configured?');
+  }
+};
+
+const handleRejectExchangeRequest = async (requestId) => {
+  try {
+    const response = await fetch(`${API_BASE}/exchange-request/${requestId}/reject/`, {
+      method: 'POST',
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      alert(data.error || 'Failed to reject exchange request.');
+      return;
+    }
+
+    setReceivedExchangeRequests((prev) =>
+      prev.map((request) =>
+        request.id === requestId ? { ...request, status: 'rejected' } : request
+      )
+    );
+
+    alert('Exchange request rejected.');
+  } catch {
+    alert('Failed to connect to Django. Is the server running & CORS configured?');
+  }
+};
 
   const handleReserveRequest = async (book) => {
     try {
@@ -525,24 +619,38 @@ export default function App() {
   }, [isLoggedIn, username]);
 
   useEffect(() => {
-    const fetchExchangeRequests = async () => {
-      if (!isLoggedIn || !username) {
-        return;
+  const fetchExchangeRequests = async () => {
+    if (!isLoggedIn || !username) {
+      return;
+    }
+
+    try {
+      const [myResponse, receivedResponse] = await Promise.all([
+        fetch(`${API_BASE}/exchange-requests/?requester=${encodeURIComponent(username)}`),
+        fetch(`${API_BASE}/exchange-requests/?owner=${encodeURIComponent(username)}`),
+      ]);
+
+      const [myData, receivedData] = await Promise.all([
+        myResponse.json(),
+        receivedResponse.json(),
+      ]);
+
+      if (myResponse.ok) {
+        setExchangeRequests(Array.isArray(myData) ? myData.map(normalizeExchangeRequest) : []);
       }
 
-      try {
-        const response = await fetch(`${API_BASE}/exchange-requests/?requester=${encodeURIComponent(username)}`);
-        const data = await response.json();
-        if (response.ok) {
-          setExchangeRequests(Array.isArray(data) ? data.map(normalizeExchangeRequest) : []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch exchange requests:', error);
+      if (receivedResponse.ok) {
+        setReceivedExchangeRequests(
+          Array.isArray(receivedData) ? receivedData.map(normalizeExchangeRequest) : []
+        );
       }
-    };
+    } catch (error) {
+      console.error('Failed to fetch exchange requests:', error);
+    }
+  };
 
-    fetchExchangeRequests();
-  }, [isLoggedIn, username]);
+  fetchExchangeRequests();
+}, [isLoggedIn, username]);
 
   useEffect(() => {
     if (!isLoggedIn || !username) {
@@ -643,6 +751,12 @@ export default function App() {
             borrowRequests={borrowRequests}
             receivedBorrowRequests={receivedBorrowRequests}
             onUndoBorrowRequest={handleUndoBorrowRequest}
+            onAcceptBorrowRequest={handleAcceptBorrowRequest}
+            onRejectBorrowRequest={handleRejectBorrowRequest}
+            exchangeRequests={exchangeRequests}
+            receivedExchangeRequests={receivedExchangeRequests}
+            onAcceptExchangeRequest={handleAcceptExchangeRequest}
+            onRejectExchangeRequest={handleRejectExchangeRequest}
           />
         )}
 
