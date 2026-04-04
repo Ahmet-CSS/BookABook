@@ -2,7 +2,7 @@ import { theme } from './theme';
 
 export const styles = {
   container: {
-    backgroundColor: theme.bg,
+    ...theme.bg,
     color: theme.text,
     minHeight: '100vh',
     width: '100%',
@@ -107,7 +107,7 @@ export const styles = {
     width: '40px',
     height: '40px',
     borderRadius: '50%',
-    backgroundColor: theme.bg,
+    backgroundColor: theme.innerBg,
     border: `1px solid ${theme.border}`,
     objectFit: 'cover',
   },
@@ -123,6 +123,7 @@ export const styles = {
     width: '100%',
   },
   loginWrapper: {
+    ...theme.bg,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',

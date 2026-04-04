@@ -1,11 +1,16 @@
+import bgimg from './bgimg.jpg';
 export const theme = {
-  bg: '#05050a',
-  cardBg: '#111118',
+  bg: {
+    backgroundImage: `url(${bgimg})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center', 
+  },
+  cardBg: '#000000',
   innerBg: '#0a0a0f',
   border: '#22222b',
-  text: '#f8fafc',
-  textMuted: '#94a3b8',
-  primary: '#ff007f',
+  text: '#fefefe',
+  textMuted: '#ffffff',
+  primary: '#ffa20b',
   secondary: '#6366f1',
   accent: '#fbbf24',
   success: '#10b981',

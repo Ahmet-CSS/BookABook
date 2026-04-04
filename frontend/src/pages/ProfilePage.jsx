@@ -114,28 +114,28 @@ export default function ProfilePage({
             <input
               type="text"
               placeholder="Book title"
-              style={{ ...styles.loginInput, backgroundColor: theme.bg, border: `1px solid ${theme.border}`, borderRadius: '10px' }}
+              style={{ ...styles.loginInput, backgroundColor: theme.bg, border: `1px solid ${theme.border}`, borderRadius: '10px', color: '#000000' }}
               value={newBookTitle}
               onChange={(e) => setNewBookTitle(e.target.value)}
             />
             <input
               type="text"
               placeholder="Author"
-              style={{ ...styles.loginInput, backgroundColor: theme.bg, border: `1px solid ${theme.border}`, borderRadius: '10px' }}
+              style={{ ...styles.loginInput, backgroundColor: theme.bg, border: `1px solid ${theme.border}`, borderRadius: '10px', color: '#000000' }}
               value={newBookAuthor}
               onChange={(e) => setNewBookAuthor(e.target.value)}
             />
             <input
               type="text"
               placeholder="Genre"
-              style={{ ...styles.loginInput, backgroundColor: theme.bg, border: `1px solid ${theme.border}`, borderRadius: '10px' }}
+              style={{ ...styles.loginInput, backgroundColor: theme.bg, border: `1px solid ${theme.border}`, borderRadius: '10px', color: '#000000' }}
               value={newBookGenre}
               onChange={(e) => setNewBookGenre(e.target.value)}
             />
             <input
               type="text"
               placeholder="ISBN"
-              style={{ ...styles.loginInput, backgroundColor: theme.bg, border: `1px solid ${theme.border}`, borderRadius: '10px' }}
+              style={{ ...styles.loginInput, backgroundColor: theme.bg, border: `1px solid ${theme.border}`, borderRadius: '10px', color: '#000000' }}
               value={newBookIsbn}
               onChange={(e) => setNewBookIsbn(e.target.value)}
             />
