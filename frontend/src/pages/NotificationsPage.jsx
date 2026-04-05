@@ -12,11 +12,23 @@ export default function NotificationsPage({
   receivedExchangeRequests = [],
   onAcceptExchangeRequest,
   onRejectExchangeRequest,
-  
+  onOpenChat,
 }) {
   const hasNotifications = borrowRequests.length > 0 || receivedBorrowRequests.length > 0 || exchangeRequests.length > 0 || receivedExchangeRequests.length > 0;
 
-  function renderNotificationBox(icon, lineColor, boxColor, title, message, key, showUndoButton, requestId, showActionButtons, isExchangeAction = false) {
+  function renderNotificationBox(
+    icon,
+    lineColor,
+    boxColor,
+    title,
+    message,
+    key,
+    showUndoButton,
+    requestId,
+    showActionButtons,
+    messageUser,
+    isExchangeAction = false
+  ) {
     return (
       <div
         key={key}
@@ -103,6 +115,24 @@ export default function NotificationsPage({
               </button>
             </div>
           ) : null}
+          {messageUser ? (
+            <button
+              style={{
+                marginTop: '10px',
+                background: theme.primary,
+                border: 'none',
+                borderRadius: '8px',
+                color: 'white',
+                cursor: 'pointer',
+                padding: '6px 10px',
+                fontSize: '12px',
+                fontWeight: 'bold',
+              }}
+              onClick={() => onOpenChat?.(messageUser)}
+            >
+              Message
+            </button>
+          ) : null}
         </div>
       </div>
     );
@@ -140,7 +170,8 @@ export default function NotificationsPage({
                 `borrow-${request.id}`,
                 request.status === 'pending',
                 request.id,
-                false
+                false,
+                request.book_owner
             )
           )}
 
@@ -154,7 +185,8 @@ export default function NotificationsPage({
               `received-${request.id}`,
               false,
               request.id,
-              request.status === 'pending'
+              request.status === 'pending',
+              request.borrower
             )
           )}
 
@@ -168,7 +200,8 @@ export default function NotificationsPage({
                 `exchange-${request.id}`,
                 false,
                 request.id,
-                false
+                false,
+                request.owner
             )
           )}
           {receivedExchangeRequests.map((request) =>
@@ -182,6 +215,7 @@ export default function NotificationsPage({
               false,
               request.id,
               request.status === 'pending',
+              request.requester,
               true
             )
           )}

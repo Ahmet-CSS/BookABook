@@ -16,7 +16,6 @@ export default function App() {
   const [view, setView] = useState('browse');
   const [search, setSearch] = useState('');
   const [books, setBooks] = useState([]);
-  const [borrowedBooks] = useState([]);
   const [borrowRequests, setBorrowRequests] = useState([]);
   const [receivedBorrowRequests, setReceivedBorrowRequests] = useState([]);
   const [exchangeRequests, setExchangeRequests] = useState([]);
@@ -44,6 +43,14 @@ export default function App() {
 
   const filteredBooks = books.filter((book) => book.title.toLowerCase().includes(search.toLowerCase()));
   const listedBooks = books.filter((book) => (book.owner || '').toLowerCase() === username.toLowerCase());
+  const borrowedBooks = borrowRequests
+    .filter((request) => request.status === 'accepted')
+    .map((request) => ({
+      id: request.book,
+      title: request.book_title || 'Untitled',
+      owner: request.book_owner || 'Unknown',
+      due: request.due_date || 'Not set',
+    }));
   const notificationItems = [...borrowRequests, ...receivedBorrowRequests, ...exchangeRequests, ...receivedExchangeRequests];
   const notificationKey = JSON.stringify(
     notificationItems.map((item) => ({
@@ -74,6 +81,30 @@ export default function App() {
       setBooks(Array.isArray(data) ? data : []);
     } catch {
       // Keep the current list if the backend is unavailable.
+    }
+  };
+
+  const loadBorrowData = async () => {
+    if (!isLoggedIn || !username) {
+      return;
+    }
+
+    try {
+      const [myResponse, receivedResponse] = await Promise.all([
+        fetch(`${API_BASE}/borrow-requests/?borrower=${encodeURIComponent(username)}`),
+        fetch(`${API_BASE}/borrow-requests/?owner=${encodeURIComponent(username)}`),
+      ]);
+
+      const [myData, receivedData] = await Promise.all([myResponse.json(), receivedResponse.json()]);
+
+      if (myResponse.ok) {
+        setBorrowRequests(Array.isArray(myData) ? myData : []);
+      }
+      if (receivedResponse.ok) {
+        setReceivedBorrowRequests(Array.isArray(receivedData) ? receivedData : []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch borrow requests:', error);
     }
   };
 
@@ -564,6 +595,15 @@ const handleRejectExchangeRequest = async (requestId) => {
     }
   };
 
+  const handleOpenChat = (otherUser) => {
+    if (!otherUser) {
+      return;
+    }
+
+    setSelectedChatUser(otherUser);
+    setView('chat');
+  };
+
   useEffect(() => {
     if (isLoggedIn) {
       loadBooks();
@@ -571,31 +611,16 @@ const handleRejectExchangeRequest = async (requestId) => {
   }, [isLoggedIn]);
 
   useEffect(() => {
-    const fetchBorrowData = async () => {
-      if (!isLoggedIn || !username) {
-        return;
-      }
+    if (!isLoggedIn || !username) {
+      return;
+    }
 
-      try {
-        const [myResponse, receivedResponse] = await Promise.all([
-          fetch(`${API_BASE}/borrow-requests/?borrower=${encodeURIComponent(username)}`),
-          fetch(`${API_BASE}/borrow-requests/?owner=${encodeURIComponent(username)}`),
-        ]);
+    loadBorrowData();
+    const intervalId = window.setInterval(() => {
+      loadBorrowData();
+    }, 4000);
 
-        const [myData, receivedData] = await Promise.all([myResponse.json(), receivedResponse.json()]);
-
-        if (myResponse.ok) {
-          setBorrowRequests(Array.isArray(myData) ? myData : []);
-        }
-        if (receivedResponse.ok) {
-          setReceivedBorrowRequests(Array.isArray(receivedData) ? receivedData : []);
-        }
-      } catch (error) {
-        console.error('Failed to fetch borrow requests:', error);
-      }
-    };
-
-    fetchBorrowData();
+    return () => window.clearInterval(intervalId);
   }, [isLoggedIn, username]);
 
   useEffect(() => {
@@ -732,6 +757,7 @@ const handleRejectExchangeRequest = async (requestId) => {
             onReserveRequest={handleReserveRequest}
             onCancelReservation={handleCancelReservation}
             reservations={reservations}
+            onOpenChat={handleOpenChat}
           />
         )}
 
@@ -743,6 +769,7 @@ const handleRejectExchangeRequest = async (requestId) => {
             exchangeRequests={exchangeRequests}
             reservations={reservations}
             onUndoBorrowRequest={handleUndoBorrowRequest}
+            onOpenChat={handleOpenChat}
           />
         )}
 
@@ -757,6 +784,7 @@ const handleRejectExchangeRequest = async (requestId) => {
             receivedExchangeRequests={receivedExchangeRequests}
             onAcceptExchangeRequest={handleAcceptExchangeRequest}
             onRejectExchangeRequest={handleRejectExchangeRequest}
+            onOpenChat={handleOpenChat}
           />
         )}
 

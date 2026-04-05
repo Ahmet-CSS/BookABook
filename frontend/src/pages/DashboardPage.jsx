@@ -11,6 +11,7 @@ export default function DashboardPage({
   exchangeRequests = [],
   reservations = [],
   onUndoBorrowRequest,
+  onOpenChat,
 }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
@@ -97,6 +98,25 @@ export default function DashboardPage({
                   Undo Request
                 </button>
               ) : null}
+              {request.book_owner ? (
+                <button
+                  style={{
+                    marginTop: '10px',
+                    marginLeft: request.status === 'pending' && typeof onUndoBorrowRequest === 'function' ? '10px' : '0',
+                    background: theme.primary,
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: 'white',
+                    cursor: 'pointer',
+                    padding: '6px 10px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                  }}
+                  onClick={() => onOpenChat?.(request.book_owner)}
+                >
+                  Message
+                </button>
+              ) : null}
             </div>
           ))
         )}
@@ -124,6 +144,24 @@ export default function DashboardPage({
               <div style={{ fontSize: '12px', color: theme.textMuted }}>Owner: {getExchangeField(request, 'owner', 'requested_book_owner')}</div>
               <div style={{ fontSize: '12px', color: theme.textMuted }}>Offered Book: {getExchangeField(request, 'offeredBookTitle', 'offered_book_title')}</div>
               <div style={{ fontSize: '12px', color: theme.textMuted }}>Status: {request.status}</div>
+              {getExchangeField(request, 'owner', 'requested_book_owner') ? (
+                <button
+                  style={{
+                    marginTop: '10px',
+                    background: theme.primary,
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: 'white',
+                    cursor: 'pointer',
+                    padding: '6px 10px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                  }}
+                  onClick={() => onOpenChat?.(getExchangeField(request, 'owner', 'requested_book_owner'))}
+                >
+                  Message
+                </button>
+              ) : null}
             </div>
           ))
         )}
@@ -153,6 +191,24 @@ export default function DashboardPage({
               <div style={{ fontWeight: 'bold' }}>{request.book_title}</div>
               <div style={{ fontSize: '12px', color: theme.textMuted }}>Borrower: {request.borrower}</div>
               <div style={{ fontSize: '12px', color: theme.textMuted }}>Status: {request.status}</div>
+              {request.borrower ? (
+                <button
+                  style={{
+                    marginTop: '10px',
+                    background: theme.primary,
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: 'white',
+                    cursor: 'pointer',
+                    padding: '6px 10px',
+                    fontSize: '12px',
+                    fontWeight: 'bold',
+                  }}
+                  onClick={() => onOpenChat?.(request.borrower)}
+                >
+                  Message
+                </button>
+              ) : null}
             </div>
           ))
         )}

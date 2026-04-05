@@ -13,6 +13,7 @@ export default function BrowsePage({
   onReserveRequest,
   onCancelReservation,
   reservations = [],
+  onOpenChat,
 }) {
 
   const [activeGenre, setActiveGenre] = useState('All');
@@ -29,6 +30,11 @@ export default function BrowsePage({
       const requestedOwner = request.owner || request.requested_book_owner;
       return requestedTitle === book.title && requestedOwner === book.owner;
     });
+
+  const getExistingReservation = (book) =>
+    reservations.find(
+      (reservation) => reservation.book === book.id && reservation.reserver === username
+    );
 
   return (
     <div>
@@ -116,20 +122,27 @@ export default function BrowsePage({
           ? 'Requested'
           : 'Request Borrow'}</button>
 
-          <button
-          style={{ ...styles.button, background: theme.secondary, marginTop: '10px' }}
-          onClick={() => onExchangeRequest(book)}
-          disabled={hasExchangeRequest(book)}
-          >
-            {hasExchangeRequest(book)
-              ? 'Exchange Requested'
-              : 'Request Exchange'}
-          </button>
+	          <button
+	          style={{ ...styles.button, background: theme.secondary, marginTop: '10px' }}
+	          onClick={() => onExchangeRequest(book)}
+	          disabled={hasExchangeRequest(book)}
+	          >
+	            {hasExchangeRequest(book)
+	              ? 'Exchange Requested'
+	              : 'Request Exchange'}
+	          </button>
 
-          {book.status === 'unavailable' && (() => {
-            const existingReservation = reservations.find(
-              (reservation) => reservation.book === book.id && reservation.reserver === username
-            );
+            {book.owner && book.owner !== username && !getExistingReservation(book) ? (
+              <button
+                style={{ ...styles.button, background: theme.primary, marginTop: '10px' }}
+                onClick={() => onOpenChat?.(book.owner)}
+              >
+                Message Owner
+              </button>
+            ) : null}
+
+	          {book.status === 'unavailable' && (() => {
+            const existingReservation = getExistingReservation(book);
             return (
               <button
            style={{ ...styles.button, background: theme.error, marginTop: '10px' }}
