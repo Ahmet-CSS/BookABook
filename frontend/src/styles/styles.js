@@ -67,7 +67,7 @@ export const styles = {
     background: 'none',
     border: `1px solid ${theme.border}`,
     borderRadius: '8px',
-    color: theme.error,
+    color: theme.primary,
     cursor: 'pointer',
     padding: '6px 12px',
     display: 'flex',
