@@ -64,7 +64,7 @@ export const styles = {
     transition: '0.3s',
   }),
   logoutBtn: {
-    background: 'none',
+    backgroundColor: '#000000',
     border: `1px solid ${theme.border}`,
     borderRadius: '8px',
     color: theme.primary,
