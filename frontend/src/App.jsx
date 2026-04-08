@@ -393,16 +393,41 @@ const handleRejectBorrowRequest = async (requestId) => {
   const handleDueDateChange = (book) => {
     setTargetBook(book);
     setIsDueDateModalOpen(true);
-  }
+  };
+
+  const addDays = (days) => {
+    const date = new Date();
+    date.setDate(date.getDate() + days);
+    return date.toISOString().split('T')[0];
+  };
 
   const handleConfirmDueDateUpdate = async () => {
-    if (!targetBook || !dueDate) {
+    if (!dueDate) {
       alert('Select a due date first.');
       return;
     }
-    setIsDueDateModalOpen(false);
-    setTargetBook(null);
-  }
+    try {
+      //TODO update POST due_date field on model
+      const response = await fetch(`${API_BASE}/borrow-request/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          due_date: dueDate,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Failed to change due date request.');
+        return;
+      }
+      setIsDueDateModalOpen(false);
+      setTargetBook(null);
+      alert('Due date change sent successfully!');
+    } catch {
+      alert('Failed to connect to Django. Is the server running & CORS configured?');
+    }
+  };
 
   const handleConfirmExchangeRequest = async () => {
     if (!targetBook || !selectedBookForExchange) {
@@ -987,8 +1012,77 @@ const handleRejectExchangeRequest = async (requestId) => {
             >
               Enter a Due Date
             </h3>
-            
-
+            <div
+              style={{
+                maxHeight: '250px',
+                overflowY: 'auto',
+                marginBottom: '20px',
+                display: 'flex',
+                gap: '10px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <button
+                style={{
+                  background: theme.secondary,
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+                onClick={() => setDueDate(addDays(3))}
+              >
+                3 Days
+              </button>
+              <button
+                style={{
+                  background: theme.secondary,
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+                onClick={() => setDueDate(addDays(7))}
+              >
+                1 Week
+              </button>
+              <button
+                style={{
+                  background: theme.secondary,
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+                onClick={() => setDueDate(addDays(14))}
+              >
+                2 Weeks
+              </button>
+              <button
+                style={{
+                  background: theme.secondary,
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+                onClick={() => setDueDate(addDays(30))}
+              >
+                1 Month
+              </button>
+            </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
               <button

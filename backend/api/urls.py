@@ -15,6 +15,7 @@ urlpatterns = [
     path("borrow-request/<int:request_id>/", views.delete_borrow_request, name="delete-borrow-request"),
     path("borrow-request/<int:request_id>/accept/", views.accept_borrow_request, name="accept-borrow-request"),
     path("borrow-request/<int:request_id>/reject/", views.reject_borrow_request, name="reject-borrow-request"),
+    path("borrow-request/<int:request_id>/update/", views.update_borrow_request, name="update-borrow-request"),
 
     path("exchange-request/", views.create_exchange_request, name="exchange-request"),
     path("exchange-requests/", views.get_exchange_requests, name="exchange-requests"),

@@ -217,6 +217,33 @@ def accept_borrow_request(request, request_id):
     serializer = BorrowRequestSerializer(borrow_request)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
+# Update due date on borrow request
+@api_view(["PATCH"])
+def update_borrow_request(request, request_id):
+    """
+    Update the due date of a borrow request.
+    Expects JSON body: { "due_date": "YYYY-MM-DD" }
+    """
+    try:
+        borrow_request = BorrowRequest.objects.get(id=request_id)
+    except BorrowRequest.DoesNotExist:
+        return Response({"error": "Borrow request not found!"}, status=status.HTTP_404_NOT_FOUND)
+
+    due_date_number = request.data.get("due_date")
+    if not due_date_number:
+        return Response({"error": "due_date is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        # Convert string to date object
+        new_due_date = timezone.now().date() + timedelta(days=due_date_str)
+    except ValueError:
+        return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
+    borrow_request.due_date = new_due_date
+    borrow_request.save()
+
+    serializer = BorrowRequestSerializer(borrow_request)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 @api_view(["POST"])
 def reject_borrow_request(request, request_id):
