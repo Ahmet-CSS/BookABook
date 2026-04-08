@@ -12,6 +12,7 @@ export const theme = {
   textMuted: '#ffffff',
   primary: '#ffa20b',
   secondary: '#6366f1',
+  tertiary: '#28ce12',
   accent: '#fbbf24',
   success: '#10b981',
   error: '#ef4444',
