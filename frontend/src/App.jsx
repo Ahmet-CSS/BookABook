@@ -51,6 +51,10 @@ export default function App() {
       owner: request.book_owner || 'Unknown',
       due: request.due_date || 'Not set',
     }));
+  const currentlyBorrowing = borrowRequests
+    .filter((request) => request.status === 'accepted')
+  const currentlyLending = receivedBorrowRequests
+    .filter((request) => request.status === 'accepted')
   const notificationItems = [...borrowRequests, ...receivedBorrowRequests, ...exchangeRequests, ...receivedExchangeRequests];
   const notificationKey = JSON.stringify(
     notificationItems.map((item) => ({
@@ -768,6 +772,8 @@ const handleRejectExchangeRequest = async (requestId) => {
             receivedBorrowRequests={receivedBorrowRequests}
             exchangeRequests={exchangeRequests}
             reservations={reservations}
+            currentlyLending={currentlyLending}
+            currentlyBorrowing={currentlyBorrowing}
             onUndoBorrowRequest={handleUndoBorrowRequest}
             onOpenChat={handleOpenChat}
           />
