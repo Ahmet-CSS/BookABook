@@ -27,6 +27,8 @@ export default function App() {
   const [newMessage, setNewMessage] = useState('');
   const [seenNotificationKey, setSeenNotificationKey] = useState('');
   const [isExchangeModalOpen, setIsExchangeModalOpen] = useState(false);
+  const [isDueDateModalOpen, setIsDueDateModalOpen] = useState(false);
+  const [dueDate, setDueDate] = useState(null);
   const [selectedBookForExchange, setSelectedBookForExchange] = useState(null);
   const [targetBook, setTargetBook] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -182,6 +184,8 @@ export default function App() {
     setNewMessage('');
     setSeenNotificationKey('');
     setIsExchangeModalOpen(false);
+    setIsDueDateModalOpen(false);
+    setDueDate(null);
     setSelectedBookForExchange(null);
     setTargetBook(null);
     localStorage.removeItem('token');
@@ -385,6 +389,20 @@ const handleRejectBorrowRequest = async (requestId) => {
     setSelectedBookForExchange(null);
     setIsExchangeModalOpen(true);
   };
+
+  const handleDueDateChange = (book) => {
+    setTargetBook(book);
+    setIsDueDateModalOpen(true);
+  }
+
+  const handleConfirmDueDateUpdate = async () => {
+    if (!targetBook || !dueDate) {
+      alert('Select a due date first.');
+      return;
+    }
+    setIsDueDateModalOpen(false);
+    setTargetBook(null);
+  }
 
   const handleConfirmExchangeRequest = async () => {
     if (!targetBook || !selectedBookForExchange) {
@@ -776,6 +794,7 @@ const handleRejectExchangeRequest = async (requestId) => {
             currentlyBorrowing={currentlyBorrowing}
             onUndoBorrowRequest={handleUndoBorrowRequest}
             onOpenChat={handleOpenChat}
+            onDueDateRequest={handleDueDateChange}
           />
         )}
 
@@ -925,6 +944,82 @@ const handleRejectExchangeRequest = async (requestId) => {
                   cursor: 'pointer',
                 }}
                 onClick={handleConfirmExchangeRequest}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {isDueDateModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: theme.cardBg,
+              padding: '30px',
+              borderRadius: '24px',
+              width: '420px',
+              border: `1px solid ${theme.border}`,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            }}
+          >
+            <h3
+              style={{
+                fontSize: '20px',
+                fontWeight: 'bold',
+                marginBottom: '20px',
+                borderBottom: `1px solid ${theme.border}`,
+                paddingBottom: '10px',
+              }}
+            >
+              Enter a Due Date
+            </h3>
+            
+
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+              <button
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: theme.border,
+                  color: theme.text,
+                  cursor: 'pointer',
+                }}
+                onClick={() => {
+                  setIsDueDateModalOpen(false);
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: theme.primary,
+                  color: 'white',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                }}
+                onClick={handleConfirmDueDateUpdate}
               >
                 Confirm
               </button>
