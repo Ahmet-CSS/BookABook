@@ -38,6 +38,7 @@ export default function App() {
   const [newBookAuthor, setNewBookAuthor] = useState('');
   const [newBookGenre, setNewBookGenre] = useState('');
   const [newBookIsbn, setNewBookIsbn] = useState('');
+  const [newBookListingType, setNewBookListingType] = useState('standard');
   const [addBookMessage, setAddBookMessage] = useState('');
   const[receivedExchangeRequests, setReceivedExchangeRequests] = useState([]);
 
@@ -204,6 +205,7 @@ export default function App() {
           isbn: newBookIsbn.trim(),
           owner: username || 'Unknown',
           rating: 5.0,
+          listing_type: newBookListingType,
           status: 'available',
         }),
       });
@@ -219,6 +221,7 @@ export default function App() {
       setNewBookAuthor('');
       setNewBookGenre('');
       setNewBookIsbn('');
+      setNewBookListingType('standard');
       setAddBookMessage('Book added successfully.');
     } catch {
       setAddBookMessage('Could not reach backend. Please ensure Django is running.');
@@ -809,6 +812,8 @@ const handleRejectExchangeRequest = async (requestId) => {
             setNewBookGenre={setNewBookGenre}
             newBookIsbn={newBookIsbn}
             setNewBookIsbn={setNewBookIsbn}
+            newBookListingType={newBookListingType}
+            setNewBookListingType={setNewBookListingType}
             addBookMessage={addBookMessage}
             onAddBook={handleAddBook}
             onDeleteBook={handleDeleteBook}
