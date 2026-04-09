@@ -26,13 +26,12 @@ export default function ProfilePage({
 }) {
   const [ratedBooks, setRatedBooks] = useState({});
 
-  const handleStarClick = (bookId, title, score) => {
-    if (ratedBooks[title]) {
-      return;
-    }
+  const handleStarClick = async (bookId, title, score) => {
     if (typeof onRateBook === 'function') {
-      onRateBook(bookId, title, score);
-      setRatedBooks((prev) => ({ ...prev, [title]: score }));
+      const didRateBook = await onRateBook(bookId, title, score);
+      if (didRateBook) {
+        setRatedBooks((prev) => ({ ...prev, [bookId]: score }));
+      }
     }
   };
 
@@ -191,18 +190,18 @@ export default function ProfilePage({
 
                   <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: `1px dashed ${theme.border}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span style={{ fontSize: '12px', color: theme.textMuted }}>
-                      {ratedBooks[book.title] ? 'Your rating:' : 'Rate this book:'}
+                      {ratedBooks[book.id] ? 'Your rating:' : 'Rate this book:'}
                     </span>
                     <div style={{ display: 'flex', gap: '2px' }}>
                       {[1, 2, 3, 4, 5].map((star) => {
-                        const currentScore = ratedBooks[book.title] || 0;
+                        const currentScore = ratedBooks[book.id] || 0;
                         return (
                           <Star
                             key={star}
                             size={16}
                             fill={currentScore >= star ? theme.accent : 'none'}
                             color={currentScore >= star ? theme.accent : theme.textMuted}
-                            style={{ cursor: ratedBooks[book.title] ? 'default' : 'pointer', transition: '0.2s' }}
+                            style={{ cursor: 'pointer', transition: '0.2s' }}
                             onClick={() => handleStarClick(book.id, book.title, star)}
                           />
                         );
