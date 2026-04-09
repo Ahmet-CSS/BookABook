@@ -19,6 +19,8 @@ export default function App() {
   const [borrowRequests, setBorrowRequests] = useState([]);
   const [receivedBorrowRequests, setReceivedBorrowRequests] = useState([]);
   const [exchangeRequests, setExchangeRequests] = useState([]);
+  const [donationRequests, setDonationRequests] = useState([]);
+  const [receivedDonationRequests, setReceivedDonationRequests] = useState([]);
   const [reservations, setReservations] = useState([]);
   const [chatUsers, setChatUsers] = useState([]);
   const [chatConversations, setChatConversations] = useState([]);
@@ -59,7 +61,14 @@ export default function App() {
     .filter((request) => request.status === 'accepted')
   const currentlyLending = receivedBorrowRequests
     .filter((request) => request.status === 'accepted')
-  const notificationItems = [...borrowRequests, ...receivedBorrowRequests, ...exchangeRequests, ...receivedExchangeRequests];
+  const notificationItems = [
+    ...borrowRequests,
+    ...receivedBorrowRequests,
+    ...exchangeRequests,
+    ...receivedExchangeRequests,
+    ...donationRequests,
+    ...receivedDonationRequests,
+  ];
   const notificationKey = JSON.stringify(
     notificationItems.map((item) => ({
       id: item.id,
@@ -75,6 +84,7 @@ export default function App() {
     id: request.id,
     requestedBookTitle: request.requestedBookTitle || request.requested_book_title,
     owner: request.owner || request.requested_book_owner,
+    requester: request.requester,
     offeredBookTitle: request.offeredBookTitle || request.offered_book_title,
     status: request.status,
   });
@@ -178,6 +188,8 @@ export default function App() {
     setBorrowRequests([]);
     setReceivedBorrowRequests([]);
     setExchangeRequests([]);
+    setDonationRequests([]);
+    setReceivedDonationRequests([]);
     setReservations([]);
     setChatUsers([]);
     setChatConversations([]);
@@ -266,7 +278,7 @@ export default function App() {
       const data = await response.json();
       if (!response.ok) {
         alert(data.error || 'Failed to rate the book.');
-        return;
+        return false;
       }
 
       setBooks((prevBooks) =>
@@ -275,8 +287,10 @@ export default function App() {
         )
       );
       alert(`Success! Rated "${bookTitle}" ${userRating} stars.`);
+      return true;
     } catch {
       alert('Failed to rate the book. Please try again.');
+      return false;
     }
   };
 
@@ -442,6 +456,108 @@ const handleRejectBorrowRequest = async (requestId) => {
       setSelectedBorrowRequest(null);
       setDueDate('');
       alert('Due date updated successfully!');
+    } catch {
+      alert('Failed to connect to Django. Is the server running & CORS configured?');
+    }
+  };
+
+  const handleDonationRequest = async (book) => {
+    const alreadyRequested = donationRequests.some(
+      (request) => request.book === book.id && request.requester === username && request.status === 'pending'
+    );
+    if (alreadyRequested) {
+      alert('You already requested this donation listing.');
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/donation-request/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ book_id: book.id, requester: username }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Failed to request donation.');
+        return;
+      }
+
+      setDonationRequests((prev) => [...prev, data]);
+      alert('Donation request sent successfully!');
+    } catch {
+      alert('Failed to connect to Django. Is the server running & CORS configured?');
+    }
+  };
+
+  const handleUndoDonationRequest = async (requestId) => {
+    try {
+      const response = await fetch(`${API_BASE}/donation-request/${requestId}/`, {
+        method: 'DELETE',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Failed to undo donation request.');
+        return;
+      }
+
+      setDonationRequests((prev) => prev.filter((request) => request.id !== requestId));
+      setReceivedDonationRequests((prev) => prev.filter((request) => request.id !== requestId));
+      alert('Donation request removed.');
+    } catch {
+      alert('Failed to connect to Django. Is the server running & CORS configured?');
+    }
+  };
+
+  const handleAcceptDonationRequest = async (requestId) => {
+    try {
+      const response = await fetch(`${API_BASE}/donation-request/${requestId}/accept/`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Failed to accept donation request.');
+        return;
+      }
+
+      setReceivedDonationRequests((prev) =>
+        prev.map((request) => (request.id === requestId ? data : { ...request, status: 'rejected' }))
+      );
+      setDonationRequests((prev) =>
+        prev.map((request) =>
+          request.book === data.book ? { ...request, status: request.id === requestId ? 'accepted' : 'rejected' } : request
+        )
+      );
+      setBooks((prev) =>
+        prev.map((book) => (book.id === data.book ? { ...book, status: 'donated' } : book))
+      );
+      alert('Donation request accepted.');
+    } catch {
+      alert('Failed to connect to Django. Is the server running & CORS configured?');
+    }
+  };
+
+  const handleRejectDonationRequest = async (requestId) => {
+    try {
+      const response = await fetch(`${API_BASE}/donation-request/${requestId}/reject/`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Failed to reject donation request.');
+        return;
+      }
+
+      setReceivedDonationRequests((prev) =>
+        prev.map((request) => (request.id === requestId ? data : request))
+      );
+      setDonationRequests((prev) =>
+        prev.map((request) => (request.id === requestId ? data : request))
+      );
+      alert('Donation request rejected.');
     } catch {
       alert('Failed to connect to Django. Is the server running & CORS configured?');
     }
@@ -743,6 +859,35 @@ const handleRejectExchangeRequest = async (requestId) => {
 }, [isLoggedIn, username]);
 
   useEffect(() => {
+    const fetchDonationRequests = async () => {
+      if (!isLoggedIn || !username) {
+        return;
+      }
+
+      try {
+        const [myResponse, receivedResponse] = await Promise.all([
+          fetch(`${API_BASE}/donation-requests/?requester=${encodeURIComponent(username)}`),
+          fetch(`${API_BASE}/donation-requests/?owner=${encodeURIComponent(username)}`),
+        ]);
+
+        const [myData, receivedData] = await Promise.all([myResponse.json(), receivedResponse.json()]);
+
+        if (myResponse.ok) {
+          setDonationRequests(Array.isArray(myData) ? myData : []);
+        }
+
+        if (receivedResponse.ok) {
+          setReceivedDonationRequests(Array.isArray(receivedData) ? receivedData : []);
+        }
+      } catch (error) {
+        console.error('Failed to fetch donation requests:', error);
+      }
+    };
+
+    fetchDonationRequests();
+  }, [isLoggedIn, username]);
+
+  useEffect(() => {
     if (!isLoggedIn || !username) {
       return;
     }
@@ -817,8 +962,10 @@ const handleRejectExchangeRequest = async (requestId) => {
             onBorrowRequest={handleBorrowRequest}
             borrowRequests={borrowRequests}
             onExchangeRequest={handleExchangeRequest}
+            onDonationRequest={handleDonationRequest}
             username={username}
             exchangeRequests={exchangeRequests}
+            donationRequests={donationRequests}
             onReserveRequest={handleReserveRequest}
             onCancelReservation={handleCancelReservation}
             reservations={reservations}
@@ -832,6 +979,7 @@ const handleRejectExchangeRequest = async (requestId) => {
             borrowRequests={borrowRequests}
             receivedBorrowRequests={receivedBorrowRequests}
             exchangeRequests={exchangeRequests}
+            receivedExchangeRequests={receivedExchangeRequests}
             reservations={reservations}
             currentlyLending={currentlyLending}
             currentlyBorrowing={currentlyBorrowing}
@@ -852,6 +1000,11 @@ const handleRejectExchangeRequest = async (requestId) => {
             receivedExchangeRequests={receivedExchangeRequests}
             onAcceptExchangeRequest={handleAcceptExchangeRequest}
             onRejectExchangeRequest={handleRejectExchangeRequest}
+            donationRequests={donationRequests}
+            receivedDonationRequests={receivedDonationRequests}
+            onUndoDonationRequest={handleUndoDonationRequest}
+            onAcceptDonationRequest={handleAcceptDonationRequest}
+            onRejectDonationRequest={handleRejectDonationRequest}
             onOpenChat={handleOpenChat}
           />
         )}

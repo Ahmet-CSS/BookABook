@@ -56,6 +56,15 @@ class Reservation(models.Model):
         return f"{self.reserver} reserved {self.book.title}"
 
 
+class DonationRequest(models.Model):
+    book = models.ForeignKey(Book, on_delete=models.CASCADE)
+    requester = models.CharField(max_length=100)
+    status = models.CharField(max_length=20, default='pending')  # pending, accepted, rejected
+
+    def __str__(self):
+        return f"{self.requester} wants donation of {self.book.title}"
+
+
 class ChatMessage(models.Model):
     sender = models.CharField(max_length=100)
     recipient = models.CharField(max_length=100)

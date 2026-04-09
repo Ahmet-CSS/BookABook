@@ -12,9 +12,20 @@ export default function NotificationsPage({
   receivedExchangeRequests = [],
   onAcceptExchangeRequest,
   onRejectExchangeRequest,
+  donationRequests = [],
+  receivedDonationRequests = [],
+  onUndoDonationRequest,
+  onAcceptDonationRequest,
+  onRejectDonationRequest,
   onOpenChat,
 }) {
-  const hasNotifications = borrowRequests.length > 0 || receivedBorrowRequests.length > 0 || exchangeRequests.length > 0 || receivedExchangeRequests.length > 0;
+  const hasNotifications =
+    borrowRequests.length > 0 ||
+    receivedBorrowRequests.length > 0 ||
+    exchangeRequests.length > 0 ||
+    receivedExchangeRequests.length > 0 ||
+    donationRequests.length > 0 ||
+    receivedDonationRequests.length > 0;
 
   function renderNotificationBox(
     icon,
@@ -24,10 +35,11 @@ export default function NotificationsPage({
     message,
     key,
     showUndoButton,
+    onUndo,
     requestId,
     showActionButtons,
     messageUser,
-    isExchangeAction = false
+    actionKind = 'borrow'
   ) {
     return (
       <div
@@ -74,7 +86,7 @@ export default function NotificationsPage({
                 fontSize: '12px',
                 fontWeight: 'bold',
               }}
-              onClick={() => onUndoBorrowRequest(requestId)}
+              onClick={() => onUndo?.(requestId)}
             >
               Undo Request
             </button>
@@ -92,9 +104,15 @@ export default function NotificationsPage({
                   fontSize: '12px',
                   fontWeight: 'bold',
                 }}
-                onClick={() => 
-                  isExchangeAction ? onAcceptExchangeRequest(requestId) : onAcceptBorrowRequest(requestId)
-                }
+                onClick={() => {
+                  if (actionKind === 'exchange') {
+                    onAcceptExchangeRequest(requestId);
+                  } else if (actionKind === 'donation') {
+                    onAcceptDonationRequest(requestId);
+                  } else {
+                    onAcceptBorrowRequest(requestId);
+                  }
+                }}
               >
                 Accept
               </button>
@@ -109,7 +127,15 @@ export default function NotificationsPage({
                   fontSize: '12px',
                   fontWeight: 'bold',
                 }}
-                onClick={() => isExchangeAction ? onRejectExchangeRequest(requestId) : onRejectBorrowRequest(requestId) }
+                onClick={() => {
+                  if (actionKind === 'exchange') {
+                    onRejectExchangeRequest(requestId);
+                  } else if (actionKind === 'donation') {
+                    onRejectDonationRequest(requestId);
+                  } else {
+                    onRejectBorrowRequest(requestId);
+                  }
+                }}
               >
                 Reject
               </button>
@@ -169,6 +195,7 @@ export default function NotificationsPage({
                 `You asked to borrow "${request.book_title || 'a book'}". Status: ${request.status || 'Pending'}`,
                 `borrow-${request.id}`,
                 request.status === 'pending',
+                onUndoBorrowRequest,
                 request.id,
                 false,
                 request.book_owner
@@ -184,6 +211,7 @@ export default function NotificationsPage({
               `${request.borrower || 'A user'} wants to borrow "${request.book_title || 'your book'}". Status: ${request.status || 'Pending'}`,
               `received-${request.id}`,
               false,
+              onUndoBorrowRequest,
               request.id,
               request.status === 'pending',
               request.borrower
@@ -199,9 +227,11 @@ export default function NotificationsPage({
                 `You requested to exchange "${request.requestedBookTitle || 'a book'}". Status: ${request.status || 'Pending'}`,
                 `exchange-${request.id}`,
                 false,
+                onUndoBorrowRequest,
                 request.id,
                 false,
-                request.owner
+                request.owner,
+                'exchange'
             )
           )}
           {receivedExchangeRequests.map((request) =>
@@ -213,10 +243,42 @@ export default function NotificationsPage({
               `${request.requester || 'A user'} wants to exchange "${request.requestedBookTitle || 'a book'}". Status: ${request.status || 'Pending'}`,
               `received-exchange-${request.id}`,
               false,
+              onUndoBorrowRequest,
               request.id,
               request.status === 'pending',
               request.requester,
-              true
+              'exchange'
+            )
+          )}
+          {donationRequests.map((request) =>
+            renderNotificationBox(
+              <BookOpen size={18} />,
+              theme.success,
+              `${theme.success}22`,
+              'Donation request sent',
+              `You requested "${request.book_title || 'a donation listing'}". Status: ${request.status || 'Pending'}`,
+              `donation-${request.id}`,
+              request.status === 'pending',
+              onUndoDonationRequest,
+              request.id,
+              false,
+              request.book_owner
+            )
+          )}
+          {receivedDonationRequests.map((request) =>
+            renderNotificationBox(
+              <User size={18} />,
+              theme.success,
+              `${theme.success}22`,
+              'Donation request received',
+              `${request.requester || 'A user'} wants your donation listing "${request.book_title || 'book'}". Status: ${request.status || 'Pending'}`,
+              `received-donation-${request.id}`,
+              false,
+              onUndoDonationRequest,
+              request.id,
+              request.status === 'pending',
+              request.requester,
+              'donation'
             )
           )}
         </div>

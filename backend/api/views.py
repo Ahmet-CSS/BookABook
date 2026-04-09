@@ -10,8 +10,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
-from .models import Book, BookRating, BorrowRequest, ChatMessage, ExchangeRequest, Reservation
-from .serializers import BookSerializer, BorrowRequestSerializer, ChatMessageSerializer, ReservationSerializer
+from .models import Book, BookRating, BorrowRequest, ChatMessage, DonationRequest, ExchangeRequest, Reservation
+from .serializers import BookSerializer, BorrowRequestSerializer, ChatMessageSerializer, DonationRequestSerializer, ReservationSerializer
 from django.utils import timezone 
 from datetime import timedelta
 
@@ -30,6 +30,12 @@ def get_chat_contacts(username):
     )
     contacts.update(
         Reservation.objects.filter(book__owner=username).values_list("reserver", flat=True)
+    )
+    contacts.update(
+        DonationRequest.objects.filter(requester=username).values_list("book__owner", flat=True)
+    )
+    contacts.update(
+        DonationRequest.objects.filter(book__owner=username).values_list("requester", flat=True)
     )
     contacts.update(
         ExchangeRequest.objects.filter(requester=username).values_list("book__owner", flat=True)
@@ -184,6 +190,94 @@ def get_reservations(request):
 
     reservations = Reservation.objects.filter(reserver=reserver)
     serializer = ReservationSerializer(reservations, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+def create_donation_request(request):
+    book_id = request.data.get("book_id")
+    requester = request.data.get("requester")
+
+    if not book_id or not requester:
+        return Response({"error": "book_id and requester are required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    try:
+        book = Book.objects.get(id=book_id)
+    except Book.DoesNotExist:
+        return Response({"error": "Book not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    if book.listing_type != "donation":
+        return Response({"error": "Only donation listings can be requested"}, status=status.HTTP_400_BAD_REQUEST)
+
+    if book.owner == requester:
+        return Response({"error": "You cannot request your own donation listing"}, status=status.HTTP_400_BAD_REQUEST)
+
+    existing_request = DonationRequest.objects.filter(book=book, requester=requester, status="pending").first()
+    if existing_request:
+        return Response({"error": "You already requested this donation listing"}, status=status.HTTP_400_BAD_REQUEST)
+
+    donation_request = DonationRequest.objects.create(book=book, requester=requester, status="pending")
+    serializer = DonationRequestSerializer(donation_request)
+    return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+@api_view(["GET"])
+def get_donation_requests(request):
+    requester = request.GET.get("requester")
+    owner = request.GET.get("owner")
+
+    if requester:
+        requests = DonationRequest.objects.filter(requester=requester)
+    elif owner:
+        requests = DonationRequest.objects.filter(book__owner=owner)
+    else:
+        return Response({"error": "requester or owner is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+    serializer = DonationRequestSerializer(requests, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["DELETE"])
+def delete_donation_request(request, request_id):
+    try:
+        donation_request = DonationRequest.objects.get(id=request_id)
+    except DonationRequest.DoesNotExist:
+        return Response({"error": "Donation request not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    donation_request.delete()
+    return Response({"message": "Donation request removed."}, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+def accept_donation_request(request, request_id):
+    try:
+        donation_request = DonationRequest.objects.get(id=request_id)
+    except DonationRequest.DoesNotExist:
+        return Response({"error": "Donation request not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    donation_request.status = "accepted"
+    donation_request.save()
+
+    donation_request.book.status = "donated"
+    donation_request.book.save()
+
+    DonationRequest.objects.filter(book=donation_request.book).exclude(id=donation_request.id).filter(status="pending").update(status="rejected")
+
+    serializer = DonationRequestSerializer(donation_request)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+def reject_donation_request(request, request_id):
+    try:
+        donation_request = DonationRequest.objects.get(id=request_id)
+    except DonationRequest.DoesNotExist:
+        return Response({"error": "Donation request not found"}, status=status.HTTP_404_NOT_FOUND)
+
+    donation_request.status = "rejected"
+    donation_request.save()
+
+    serializer = DonationRequestSerializer(donation_request)
     return Response(serializer.data, status=status.HTTP_200_OK)
 
 

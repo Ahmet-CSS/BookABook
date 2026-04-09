@@ -2,7 +2,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 from django.contrib.auth.models import User
 
-from .models import Book, BorrowRequest, ChatMessage, Reservation
+from .models import Book, BookRating, BorrowRequest, ChatMessage, DonationRequest, Reservation
 
 
 class BookApiTests(TestCase):
@@ -72,6 +72,34 @@ class BookApiTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(response.data['listing_type'], 'standard')
 
+    def test_rate_book_updates_existing_user_rating(self):
+        book = Book.objects.create(
+            title='Working Effectively with Legacy Code',
+            author='Michael Feathers',
+            genre='Software',
+            isbn='9780131177055',
+            owner='nithin',
+        )
+
+        first_response = self.client.post(
+            f'/api/books/{book.id}/rate/',
+            {'username': 'nithin', 'rating': 2},
+            format='json',
+        )
+        second_response = self.client.post(
+            f'/api/books/{book.id}/rate/',
+            {'username': 'nithin', 'rating': 5},
+            format='json',
+        )
+
+        self.assertEqual(first_response.status_code, 200)
+        self.assertEqual(second_response.status_code, 200)
+        self.assertEqual(BookRating.objects.filter(book=book, username='nithin').count(), 1)
+        self.assertEqual(BookRating.objects.get(book=book, username='nithin').score, 5)
+
+        book.refresh_from_db()
+        self.assertEqual(book.rating, 5.0)
+
 
 class ChatApiTests(TestCase):
     def setUp(self):
@@ -130,7 +158,6 @@ class ChatApiTests(TestCase):
         self.assertEqual(response.status_code, 403)
         self.assertEqual(ChatMessage.objects.count(), 0)
 
-
 class BorrowRequestUpdateApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -169,3 +196,39 @@ class BorrowRequestUpdateApiTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.data['error'], 'Invalid date format. Use YYYY-MM-DD.')
+
+class DonationRequestApiTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.book = Book.objects.create(
+            title='Donated Copy',
+            author='Someone',
+            genre='Fiction',
+            isbn='9780000000001',
+            owner='nani22',
+            rating=4.0,
+            listing_type='donation',
+            status='available',
+        )
+
+    def test_create_donation_request(self):
+        response = self.client.post(
+            '/api/donation-request/',
+            {'book_id': self.book.id, 'requester': 'omen'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(DonationRequest.objects.count(), 1)
+        self.assertEqual(response.data['book_owner'], 'nani22')
+
+    def test_accept_donation_request_marks_book_as_donated(self):
+        donation_request = DonationRequest.objects.create(book=self.book, requester='omen', status='pending')
+
+        response = self.client.post(f'/api/donation-request/{donation_request.id}/accept/')
+
+        self.assertEqual(response.status_code, 200)
+        donation_request.refresh_from_db()
+        self.book.refresh_from_db()
+        self.assertEqual(donation_request.status, 'accepted')
+        self.assertEqual(self.book.status, 'donated')

@@ -10,6 +10,8 @@ export default function BrowsePage({
   username,
   onExchangeRequest,
   exchangeRequests = [],
+  onDonationRequest,
+  donationRequests = [],
   onReserveRequest,
   onCancelReservation,
   reservations = [],
@@ -24,6 +26,10 @@ export default function BrowsePage({
     activeGenre === 'All' ? true : book.genre === activeGenre
   );
   const isDonationBook = (book) => book.listing_type === 'donation';
+  const hasDonationRequest = (book) =>
+    donationRequests.some(
+      (request) => request.book === book.id && request.requester === username && request.status === 'pending'
+    );
 
   const hasExchangeRequest = (book) =>
     exchangeRequests.some((request) => {
@@ -100,14 +106,12 @@ export default function BrowsePage({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '12px',
                 background: theme.innerBg,
                 padding: '12px',
                 borderRadius: '16px',
                 marginBottom: '20px',
               }}
             >
-              <img src={'/avatar.jpg'} style={styles.avatar} alt="avatar" />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: '10px', color: theme.textMuted, fontWeight: 'bold' }}>OWNER</div>
                 <div style={{ fontSize: '14px', fontWeight: 'bold' }}>{book.owner}</div>
@@ -115,16 +119,17 @@ export default function BrowsePage({
             </div>
 
             {isDonationBook(book) ? (
-              <div
-                style={{
-                  ...styles.button,
-                  background: theme.success,
-                  textAlign: 'center',
-                  cursor: 'default',
-                }}
+              <button
+                style={{ ...styles.button, background: theme.success }}
+                onClick={() => onDonationRequest?.(book)}
+                disabled={hasDonationRequest(book) || book.owner === username || book.status === 'donated'}
               >
-                Available for Donation
-              </div>
+                {book.status === 'donated'
+                  ? 'Donation Completed'
+                  : hasDonationRequest(book)
+                    ? 'Donation Requested'
+                    : 'Request Donation'}
+              </button>
             ) : (
               <>
                 <button style={styles.button}
