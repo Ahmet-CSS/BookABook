@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
@@ -220,24 +221,25 @@ def accept_borrow_request(request, request_id):
 # Update due date on borrow request
 @api_view(["PATCH"])
 def update_borrow_request(request, request_id):
-    """
-    Update the due date of a borrow request.
-    Expects JSON body: { "due_date": "YYYY-MM-DD" }
-    """
     try:
         borrow_request = BorrowRequest.objects.get(id=request_id)
     except BorrowRequest.DoesNotExist:
         return Response({"error": "Borrow request not found!"}, status=status.HTTP_404_NOT_FOUND)
 
-    due_date_number = request.data.get("due_date")
-    if not due_date_number:
+    if borrow_request.status != "accepted":
+        return Response({"error": "Only accepted borrow requests can have their due date updated."}, status=status.HTTP_400_BAD_REQUEST)
+
+    due_date_str = str(request.data.get("due_date", "")).strip()
+    if not due_date_str:
         return Response({"error": "due_date is required"}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        # Convert string to date object
-        new_due_date = timezone.now().date() + timedelta(days=due_date_str)
+        new_due_date = datetime.strptime(due_date_str, "%Y-%m-%d").date()
     except ValueError:
         return Response({"error": "Invalid date format. Use YYYY-MM-DD."}, status=status.HTTP_400_BAD_REQUEST)
+
+    if new_due_date < timezone.now().date():
+        return Response({"error": "Due date cannot be in the past."}, status=status.HTTP_400_BAD_REQUEST)
 
     borrow_request.due_date = new_due_date
     borrow_request.save()

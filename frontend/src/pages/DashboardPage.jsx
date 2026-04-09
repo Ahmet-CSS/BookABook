@@ -72,14 +72,23 @@ export default function DashboardPage({
               <div style={{ fontSize: '12px', color: theme.textMuted }}>Borrower: {request.borrower}</div>
               <div style={{ fontSize: '12px', color: theme.textMuted, marginTop: '5px' }}>
                 Due Date: {request.due_date}
-                {request.due_date ? (
-                <button
-                  onClick={() => onDueDateRequest(request.book)}
-                >
-                  Change Due Date
-                </button>
-              ) : null}
               </div>
+              <button
+                style={{
+                  marginTop: '10px',
+                  background: 'transparent',
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: '8px',
+                  color: theme.primary,
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+                onClick={() => onDueDateRequest?.(request)}
+              >
+                Change Due Date
+              </button>
               {request.borrower ? (
                 <button
                   style={{

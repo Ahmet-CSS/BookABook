@@ -28,9 +28,10 @@ export default function App() {
   const [seenNotificationKey, setSeenNotificationKey] = useState('');
   const [isExchangeModalOpen, setIsExchangeModalOpen] = useState(false);
   const [isDueDateModalOpen, setIsDueDateModalOpen] = useState(false);
-  const [dueDate, setDueDate] = useState(null);
+  const [dueDate, setDueDate] = useState('');
   const [selectedBookForExchange, setSelectedBookForExchange] = useState(null);
   const [targetBook, setTargetBook] = useState(null);
+  const [selectedBorrowRequest, setSelectedBorrowRequest] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -185,9 +186,10 @@ export default function App() {
     setSeenNotificationKey('');
     setIsExchangeModalOpen(false);
     setIsDueDateModalOpen(false);
-    setDueDate(null);
+    setDueDate('');
     setSelectedBookForExchange(null);
     setTargetBook(null);
+    setSelectedBorrowRequest(null);
     localStorage.removeItem('token');
   };
 
@@ -390,26 +392,32 @@ const handleRejectBorrowRequest = async (requestId) => {
     setIsExchangeModalOpen(true);
   };
 
-  const handleDueDateChange = (book) => {
-    setTargetBook(book);
+  const handleDueDateChange = (borrowRequest) => {
+    setSelectedBorrowRequest(borrowRequest);
+    setDueDate(borrowRequest?.due_date || '');
     setIsDueDateModalOpen(true);
   };
 
-  const addDays = (days) => {
-    const date = new Date();
+  const addDays = (days, baseDate = null) => {
+    const date = baseDate ? new Date(baseDate) : new Date();
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
     date.setDate(date.getDate() + days);
-    return date.toISOString().split('T')[0];
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const handleConfirmDueDateUpdate = async () => {
-    if (!dueDate) {
+    if (!selectedBorrowRequest || !dueDate) {
       alert('Select a due date first.');
       return;
     }
     try {
-      //TODO update POST due_date field on model
-      const response = await fetch(`${API_BASE}/borrow-request/`, {
-        method: 'POST',
+      const response = await fetch(`${API_BASE}/borrow-request/${selectedBorrowRequest.id}/update/`, {
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           due_date: dueDate,
@@ -421,9 +429,16 @@ const handleRejectBorrowRequest = async (requestId) => {
         alert(data.error || 'Failed to change due date request.');
         return;
       }
+      setBorrowRequests((prev) =>
+        prev.map((request) => (request.id === data.id ? data : request))
+      );
+      setReceivedBorrowRequests((prev) =>
+        prev.map((request) => (request.id === data.id ? data : request))
+      );
       setIsDueDateModalOpen(false);
-      setTargetBook(null);
-      alert('Due date change sent successfully!');
+      setSelectedBorrowRequest(null);
+      setDueDate('');
+      alert('Due date updated successfully!');
     } catch {
       alert('Failed to connect to Django. Is the server running & CORS configured?');
     }
@@ -1033,7 +1048,7 @@ const handleRejectExchangeRequest = async (requestId) => {
                   fontSize: '12px',
                   fontWeight: 'bold',
                 }}
-                onClick={() => setDueDate(addDays(3))}
+                onClick={() => setDueDate(addDays(3, selectedBorrowRequest?.due_date))}
               >
                 3 Days
               </button>
@@ -1048,7 +1063,7 @@ const handleRejectExchangeRequest = async (requestId) => {
                   fontSize: '12px',
                   fontWeight: 'bold',
                 }}
-                onClick={() => setDueDate(addDays(7))}
+                onClick={() => setDueDate(addDays(7, selectedBorrowRequest?.due_date))}
               >
                 1 Week
               </button>
@@ -1063,7 +1078,7 @@ const handleRejectExchangeRequest = async (requestId) => {
                   fontSize: '12px',
                   fontWeight: 'bold',
                 }}
-                onClick={() => setDueDate(addDays(14))}
+                onClick={() => setDueDate(addDays(14, selectedBorrowRequest?.due_date))}
               >
                 2 Weeks
               </button>
@@ -1078,7 +1093,7 @@ const handleRejectExchangeRequest = async (requestId) => {
                   fontSize: '12px',
                   fontWeight: 'bold',
                 }}
-                onClick={() => setDueDate(addDays(30))}
+                onClick={() => setDueDate(addDays(30, selectedBorrowRequest?.due_date))}
               >
                 1 Month
               </button>
@@ -1097,6 +1112,8 @@ const handleRejectExchangeRequest = async (requestId) => {
                 }}
                 onClick={() => {
                   setIsDueDateModalOpen(false);
+                  setSelectedBorrowRequest(null);
+                  setDueDate('');
                 }}
               >
                 Cancel
