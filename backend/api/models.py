@@ -8,6 +8,7 @@ class Book(models.Model):
     isbn = models.CharField(max_length=20, default='')
     owner = models.CharField(max_length=100)
     rating = models.FloatField(default=0.0)
+    listing_type = models.CharField(max_length=20, default='standard')  # standard, donation
     status = models.CharField(max_length=20, default='available')  # available, borrowed, exchanged
 
     def __str__(self):

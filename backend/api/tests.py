@@ -18,6 +18,7 @@ class BookApiTests(TestCase):
             'isbn': '9780132350884',
             'owner': 'nithin',
             'rating': 4.7,
+            'listing_type': 'donation',
         }
 
         response = self.client.post(self.books_url, payload, format='json')
@@ -25,6 +26,7 @@ class BookApiTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertEqual(Book.objects.count(), 1)
         self.assertEqual(Book.objects.first().isbn, payload['isbn'])
+        self.assertEqual(Book.objects.first().listing_type, payload['listing_type'])
 
     def test_create_book_missing_required_field(self):
         payload = {
@@ -54,6 +56,21 @@ class BookApiTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['title'], 'Refactoring')
+
+    def test_create_book_defaults_listing_type_to_standard(self):
+        payload = {
+            'title': 'Patterns of Enterprise Application Architecture',
+            'author': 'Martin Fowler',
+            'genre': 'Software',
+            'isbn': '9780321127426',
+            'owner': 'nithin',
+            'rating': 4.3,
+        }
+
+        response = self.client.post(self.books_url, payload, format='json')
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data['listing_type'], 'standard')
 
 
 class ChatApiTests(TestCase):

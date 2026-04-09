@@ -17,6 +17,8 @@ export default function ProfilePage({
   setNewBookGenre,
   newBookIsbn,
   setNewBookIsbn,
+  newBookListingType,
+  setNewBookListingType,
   addBookMessage,
   onAddBook,
   onDeleteBook,
@@ -102,6 +104,9 @@ export default function ProfilePage({
                   <div style={{ fontSize: '13px', color: theme.textMuted }}>
                     by {book.author} | {book.genre} | ISBN: {book.isbn}
                   </div>
+                  <div style={{ fontSize: '12px', color: theme.primary, marginTop: '6px', fontWeight: 'bold' }}>
+                    {book.listing_type === 'donation' ? 'Donation Listing' : 'Standard Listing'}
+                  </div>
                 </div>
               ))}
             </div>
@@ -139,6 +144,14 @@ export default function ProfilePage({
               value={newBookIsbn}
               onChange={(e) => setNewBookIsbn(e.target.value)}
             />
+            <select
+              style={{ ...styles.loginInput, backgroundColor: theme.bg, border: `1px solid ${theme.border}`, borderRadius: '10px', color: '#000000' }}
+              value={newBookListingType}
+              onChange={(e) => setNewBookListingType(e.target.value)}
+            >
+              <option value="standard">Standard listing</option>
+              <option value="donation">Donation listing</option>
+            </select>
             <button style={{ ...styles.button, marginTop: '4px', backgroundColor: theme.primary }} onClick={onAddBook}>
               Add Book
             </button>

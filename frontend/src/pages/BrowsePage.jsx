@@ -23,6 +23,7 @@ export default function BrowsePage({
   const displayedBooks = books.filter(book => 
     activeGenre === 'All' ? true : book.genre === activeGenre
   );
+  const isDonationBook = (book) => book.listing_type === 'donation';
 
   const hasExchangeRequest = (book) =>
     exchangeRequests.some((request) => {
@@ -75,7 +76,7 @@ export default function BrowsePage({
       <div style={styles.grid}>
         {displayedBooks.map((book) => (
           <div key={book.id} style={styles.card}>
-            <div style={styles.badge}>{book.genre}</div>
+            <div style={styles.badge}>{isDonationBook(book) ? 'Donation' : book.genre}</div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', marginBottom: '5px' }}>
               <h3 style={{ fontSize: '20px', fontWeight: 'bold', margin: 0 }}>{book.title}</h3>
               <div
@@ -113,31 +114,46 @@ export default function BrowsePage({
               </div>
             </div>
 
-            <button style={styles.button}
-            onClick={() => onBorrowRequest(book)}
-            disabled={borrowRequests.some(
-            (request) => request.book === book.id && request.borrower === username)} >
-            {borrowRequests.some(
-           (request) => request.book === book.id && request.borrower === username )
-          ? 'Requested'
-          : 'Request Borrow'}</button>
+            {isDonationBook(book) ? (
+              <div
+                style={{
+                  ...styles.button,
+                  background: theme.success,
+                  textAlign: 'center',
+                  cursor: 'default',
+                }}
+              >
+                Available for Donation
+              </div>
+            ) : (
+              <>
+                <button style={styles.button}
+                onClick={() => onBorrowRequest(book)}
+                disabled={borrowRequests.some(
+                (request) => request.book === book.id && request.borrower === username)} >
+                {borrowRequests.some(
+               (request) => request.book === book.id && request.borrower === username )
+              ? 'Requested'
+              : 'Request Borrow'}</button>
 
-	          <button
-	          style={{ ...styles.button, background: theme.secondary, marginTop: '10px' }}
-	          onClick={() => onExchangeRequest(book)}
-	          disabled={hasExchangeRequest(book)}
-	          >
-	            {hasExchangeRequest(book)
-	              ? 'Exchange Requested'
-	              : 'Request Exchange'}
-	          </button>
+	              <button
+	              style={{ ...styles.button, background: theme.secondary, marginTop: '10px' }}
+	              onClick={() => onExchangeRequest(book)}
+	              disabled={hasExchangeRequest(book)}
+	              >
+	                {hasExchangeRequest(book)
+	                  ? 'Exchange Requested'
+	                  : 'Request Exchange'}
+	              </button>
+              </>
+            )}
 
             {book.owner && book.owner !== username && !getExistingReservation(book) ? (
               <button
                 style={{ ...styles.button, background: theme.primary, marginTop: '10px' }}
                 onClick={() => onOpenChat?.(book.owner)}
               >
-                Message Owner
+                {isDonationBook(book) ? 'Message Donor' : 'Message Owner'}
               </button>
             ) : null}
 
