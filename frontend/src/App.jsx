@@ -27,8 +27,11 @@ export default function App() {
   const [newMessage, setNewMessage] = useState('');
   const [seenNotificationKey, setSeenNotificationKey] = useState('');
   const [isExchangeModalOpen, setIsExchangeModalOpen] = useState(false);
+  const [isDueDateModalOpen, setIsDueDateModalOpen] = useState(false);
+  const [dueDate, setDueDate] = useState('');
   const [selectedBookForExchange, setSelectedBookForExchange] = useState(null);
   const [targetBook, setTargetBook] = useState(null);
+  const [selectedBorrowRequest, setSelectedBorrowRequest] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -183,8 +186,11 @@ export default function App() {
     setNewMessage('');
     setSeenNotificationKey('');
     setIsExchangeModalOpen(false);
+    setIsDueDateModalOpen(false);
+    setDueDate('');
     setSelectedBookForExchange(null);
     setTargetBook(null);
+    setSelectedBorrowRequest(null);
     localStorage.removeItem('token');
   };
 
@@ -387,6 +393,58 @@ const handleRejectBorrowRequest = async (requestId) => {
     setTargetBook(book);
     setSelectedBookForExchange(null);
     setIsExchangeModalOpen(true);
+  };
+
+  const handleDueDateChange = (borrowRequest) => {
+    setSelectedBorrowRequest(borrowRequest);
+    setDueDate(borrowRequest?.due_date || '');
+    setIsDueDateModalOpen(true);
+  };
+
+  const addDays = (days, baseDate = null) => {
+    const date = baseDate ? new Date(baseDate) : new Date();
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+    date.setDate(date.getDate() + days);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const handleConfirmDueDateUpdate = async () => {
+    if (!selectedBorrowRequest || !dueDate) {
+      alert('Select a due date first.');
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE}/borrow-request/${selectedBorrowRequest.id}/update/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          due_date: dueDate,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        alert(data.error || 'Failed to change due date request.');
+        return;
+      }
+      setBorrowRequests((prev) =>
+        prev.map((request) => (request.id === data.id ? data : request))
+      );
+      setReceivedBorrowRequests((prev) =>
+        prev.map((request) => (request.id === data.id ? data : request))
+      );
+      setIsDueDateModalOpen(false);
+      setSelectedBorrowRequest(null);
+      setDueDate('');
+      alert('Due date updated successfully!');
+    } catch {
+      alert('Failed to connect to Django. Is the server running & CORS configured?');
+    }
   };
 
   const handleConfirmExchangeRequest = async () => {
@@ -779,6 +837,7 @@ const handleRejectExchangeRequest = async (requestId) => {
             currentlyBorrowing={currentlyBorrowing}
             onUndoBorrowRequest={handleUndoBorrowRequest}
             onOpenChat={handleOpenChat}
+            onDueDateRequest={handleDueDateChange}
           />
         )}
 
@@ -930,6 +989,153 @@ const handleRejectExchangeRequest = async (requestId) => {
                   cursor: 'pointer',
                 }}
                 onClick={handleConfirmExchangeRequest}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {isDueDateModalOpen && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100%',
+            height: '100%',
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: theme.cardBg,
+              padding: '30px',
+              borderRadius: '24px',
+              width: '420px',
+              border: `1px solid ${theme.border}`,
+              boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+            }}
+          >
+            <h3
+              style={{
+                fontSize: '20px',
+                fontWeight: 'bold',
+                marginBottom: '20px',
+                borderBottom: `1px solid ${theme.border}`,
+                paddingBottom: '10px',
+              }}
+            >
+              Enter a Due Date
+            </h3>
+            <div
+              style={{
+                maxHeight: '250px',
+                overflowY: 'auto',
+                marginBottom: '20px',
+                display: 'flex',
+                gap: '10px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <button
+                style={{
+                  background: theme.secondary,
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+                onClick={() => setDueDate(addDays(3, selectedBorrowRequest?.due_date))}
+              >
+                3 Days
+              </button>
+              <button
+                style={{
+                  background: theme.secondary,
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+                onClick={() => setDueDate(addDays(7, selectedBorrowRequest?.due_date))}
+              >
+                1 Week
+              </button>
+              <button
+                style={{
+                  background: theme.secondary,
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+                onClick={() => setDueDate(addDays(14, selectedBorrowRequest?.due_date))}
+              >
+                2 Weeks
+              </button>
+              <button
+                style={{
+                  background: theme.secondary,
+                  border: 'none',
+                  borderRadius: '8px',
+                  color: 'white',
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+                onClick={() => setDueDate(addDays(30, selectedBorrowRequest?.due_date))}
+              >
+                1 Month
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px' }}>
+              <button
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: theme.border,
+                  color: theme.text,
+                  cursor: 'pointer',
+                }}
+                onClick={() => {
+                  setIsDueDateModalOpen(false);
+                  setSelectedBorrowRequest(null);
+                  setDueDate('');
+                }}
+              >
+                Cancel
+              </button>
+
+              <button
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: theme.primary,
+                  color: 'white',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                }}
+                onClick={handleConfirmDueDateUpdate}
               >
                 Confirm
               </button>

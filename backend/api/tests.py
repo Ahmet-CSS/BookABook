@@ -129,3 +129,43 @@ class ChatApiTests(TestCase):
 
         self.assertEqual(response.status_code, 403)
         self.assertEqual(ChatMessage.objects.count(), 0)
+
+
+class BorrowRequestUpdateApiTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.book = Book.objects.create(
+            title='Algorithms',
+            author='CLRS',
+            genre='Education',
+            isbn='9780262033848',
+            owner='nani22',
+            rating=4.6,
+        )
+        self.borrow_request = BorrowRequest.objects.create(
+            book=self.book,
+            borrower='omen',
+            status='accepted',
+            due_date='2026-04-20',
+        )
+
+    def test_update_borrow_request_due_date(self):
+        response = self.client.patch(
+            f'/api/borrow-request/{self.borrow_request.id}/update/',
+            {'due_date': '2026-04-30'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.borrow_request.refresh_from_db()
+        self.assertEqual(str(self.borrow_request.due_date), '2026-04-30')
+
+    def test_update_borrow_request_rejects_invalid_format(self):
+        response = self.client.patch(
+            f'/api/borrow-request/{self.borrow_request.id}/update/',
+            {'due_date': '04-30-2026'},
+            format='json',
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['error'], 'Invalid date format. Use YYYY-MM-DD.')

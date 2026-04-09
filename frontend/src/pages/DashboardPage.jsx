@@ -14,6 +14,7 @@ export default function DashboardPage({
   currentlyBorrowing = [],
   onUndoBorrowRequest,
   onOpenChat,
+  onDueDateRequest,
 }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '30px' }}>
@@ -72,6 +73,22 @@ export default function DashboardPage({
               <div style={{ fontSize: '12px', color: theme.textMuted, marginTop: '5px' }}>
                 Due Date: {request.due_date}
               </div>
+              <button
+                style={{
+                  marginTop: '10px',
+                  background: 'transparent',
+                  border: `1px solid ${theme.border}`,
+                  borderRadius: '8px',
+                  color: theme.primary,
+                  cursor: 'pointer',
+                  padding: '6px 10px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}
+                onClick={() => onDueDateRequest?.(request)}
+              >
+                Change Due Date
+              </button>
               {request.borrower ? (
                 <button
                   style={{
